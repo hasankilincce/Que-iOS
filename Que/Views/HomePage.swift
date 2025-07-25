@@ -85,14 +85,3 @@ struct AddPostView: View {
     }
 }
 
-struct NotificationsView: View {
-    var body: some View {
-        NavigationStack {
-            VStack {
-                Text("Bildirimler")
-                    .font(.largeTitle.bold())
-                Spacer()
-            }
-        }
-    }
-}
