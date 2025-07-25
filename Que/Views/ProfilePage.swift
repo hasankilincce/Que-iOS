@@ -60,7 +60,7 @@ struct ProfilePage: View {
                 if viewModel.isLoading {
                     ProfileSkeletonView()
                 } else {
-                    VStack(spacing: 18) {
+                    VStack(spacing: 12) {
                         // Profil Fotoğrafı
                         if let urlString = viewModel.photoURL, let url = URL(string: urlString), !urlString.isEmpty {
                             WebImage(url: url)
@@ -196,19 +196,10 @@ struct ProfileSkeletonView: View {
                 .fill(Color(.systemGray5))
                 .frame(width: 96, height: 96)
                 .shimmer()
-            // İsim ve kullanıcı adı skeleton
+            // İsim skeleton
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color(.systemGray5))
                 .frame(width: 120, height: 20)
-                .shimmer()
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemGray5))
-                .frame(width: 80, height: 16)
-                .shimmer()
-            // Bio skeleton
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemGray5))
-                .frame(width: 180, height: 16)
                 .shimmer()
             // Takipçi ve takip skeleton
             HStack(spacing: 32) {
@@ -221,6 +212,17 @@ struct ProfileSkeletonView: View {
                     .frame(width: 40, height: 18)
                     .shimmer()
             }
+            // Button skeleton
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray5))
+                .frame(width: 80, height: 16)
+                .shimmer()
+            // Bio skeleton
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray5))
+                .frame(width: 180, height: 16)
+                .shimmer()
+            
             Spacer()
         }
         .padding(.top, 32)

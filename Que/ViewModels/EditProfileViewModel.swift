@@ -56,10 +56,18 @@ class EditProfileViewModel: ObservableObject {
         if let image = localProfileImage {
             Task {
                 do {
-                    let ref = Storage.storage().reference().child("profile_images/\(userId).jpg")
+                    let timestamp = Int(Date().timeIntervalSince1970)
+                    let ref = Storage.storage().reference().child("profile_images/\(userId)_\(timestamp).jpg")
                     let data = image.jpegData(compressionQuality: 0.85) ?? Data()
                     _ = try await ref.putDataAsync(data)
                     let url = try await ref.downloadURL()
+                    // (İsteğe bağlı) Eski fotoğrafı sil:
+                    /*
+                    if !photoURL.isEmpty, let oldURL = URL(string: photoURL), let oldPath = oldURL.pathComponents.dropFirst(2).joined(separator: "/") as String? {
+                        let oldRef = Storage.storage().reference(withPath: oldPath)
+                        try? await oldRef.delete()
+                    }
+                    */
                     self.photoURL = url.absoluteString
                     changeRequest.photoURL = url
                     // Firestore'da da güncellenecek
