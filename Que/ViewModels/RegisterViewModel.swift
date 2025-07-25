@@ -82,9 +82,18 @@ class RegisterViewModel: ObservableObject {
     }
     
     static func generateSearchKeywords(displayName: String, username: String) -> [String] {
+        func prefixes(_ text: String) -> [String] {
+            let lower = text.lowercased()
+            return (1...lower.count).map { i in
+                String(lower.prefix(i))
+            }
+        }
         let nameParts = displayName.lowercased().split(separator: " ").map { String($0) }
         var keywords: Set<String> = []
-        for part in nameParts { keywords.insert(part) }
+        for part in nameParts {
+            keywords.formUnion(prefixes(part))
+        }
+        keywords.formUnion(prefixes(username))
         keywords.insert(displayName.lowercased())
         keywords.insert(username.lowercased())
         return Array(keywords)
