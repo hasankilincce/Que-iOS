@@ -64,21 +64,29 @@ class RegisterViewModel: ObservableObject {
     
     func saveUserToFirestore(uid: String, email: String?, phone: String?, username: String, completion: @escaping (Bool) -> Void) {
         let db = Firestore.firestore()
-        let userData: [String: Any] = [
+        let displayName = username // veya başka bir displayName kaynağı
+        let keywords = RegisterViewModel.generateSearchKeywords(displayName: displayName, username: username)
+        var data: [String: Any] = [
+            "uid": uid,
             "username": username,
-            "email": email ?? NSNull(),
-            "phone": phone ?? NSNull(),
-            "createdAt": FieldValue.serverTimestamp()
+            "displayName": displayName,
+            "searchKeywords": keywords
         ]
-        let batch = db.batch()
-        let userRef = db.collection("users").document(uid)
-        batch.setData(userData, forDocument: userRef, merge: true)
-        batch.commit { error in
-            if let error = error {
-                completion(false)
-            } else {
-                completion(true)
+        if let email = email { data["email"] = email }
+        if let phone = phone { data["phone"] = phone }
+        db.collection("users").document(uid).setData(data) { error in
+            DispatchQueue.main.async {
+                completion(error == nil)
             }
         }
+    }
+    
+    static func generateSearchKeywords(displayName: String, username: String) -> [String] {
+        let nameParts = displayName.lowercased().split(separator: " ").map { String($0) }
+        var keywords: Set<String> = []
+        for part in nameParts { keywords.insert(part) }
+        keywords.insert(displayName.lowercased())
+        keywords.insert(username.lowercased())
+        return Array(keywords)
     }
 } 

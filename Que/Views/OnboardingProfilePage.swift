@@ -135,11 +135,11 @@ struct OnboardingProfilePage: View {
                             }
                         }
                         .padding(.trailing, 24)
-                        Button("Atla") {
+                        /*Button("Atla") {
                             appState.needsOnboarding = false
                         }
                         .foregroundColor(.gray)
-                        .padding(.trailing, 8)
+                        .padding(.trailing, 8)*/
                     }
                 }
                 .padding(.bottom, 32)

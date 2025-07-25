@@ -1,67 +1,253 @@
 import SwiftUI
 import SDWebImageSwiftUI
+import FirebaseAuth
+import FirebaseFirestore
 
 struct ProfilePage: View {
     @StateObject private var viewModel: ProfileViewModel
     @State private var showEdit = false
+    @State private var showSettings = false
+    @Binding var isProfileRoot: Bool
+    @State private var showFollowersPage = false
+    @State private var showFollowsPage = false
+    @State private var selectedUserId: String? = nil
+    @Environment(\.dismiss) private var dismiss
     
-    init(userId: String? = nil) {
+    init(userId: String? = nil, isProfileRoot: Binding<Bool> = .constant(true)) {
         _viewModel = StateObject(wrappedValue: ProfileViewModel(userId: userId))
+        self._isProfileRoot = isProfileRoot
     }
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                if viewModel.isLoading {
-                    ProgressView()
-                } else if let error = viewModel.errorMessage {
-                    Text(error)
-                        .foregroundColor(.red)
-                } else {
-                    if let urlString = viewModel.photoURL, let url = URL(string: urlString), !urlString.isEmpty {
-                        WebImage(url: url)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
-                            .background(
-                                Image(systemName: "person.crop.circle.fill")
-                                    .resizable()
-                                    .foregroundColor(.gray)
-                            )
-                    } else {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .frame(width: 100, height: 100)
-                            .foregroundColor(.gray)
+        VStack(spacing: 0) {
+            // Custom üst bar
+            HStack {
+                if !viewModel.isCurrentUser {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "chevron.left")
+                            .font(.title2.bold())
+                            .foregroundColor(.white)
+                            .padding(8)
                     }
-                    Text(viewModel.displayName.isEmpty ? "Kullanıcı" : viewModel.displayName)
-                        .font(.largeTitle)
-                        .bold()
-                    Text(viewModel.email)
-                        .foregroundColor(.gray)
-                    if viewModel.isCurrentUser {
-                        Button("Profili Düzenle") {
-                            showEdit = true
+                } else {
+                    Color.clear.frame(width: 36, height: 36)
+                    Spacer()
+                }
+                
+                Text(viewModel.isCurrentUser ? "Profilim" : viewModel.username.isEmpty ? "" : viewModel.username)
+                    .font(.title3)
+                    //.foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer()
+                if viewModel.isCurrentUser {
+                    NavigationLink(destination: SettingsPage(onSignOut: signOut)) {
+                        Image(systemName: "gearshape")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                            .padding(8)
+                    }
+                } else {
+                    Color.clear.frame(width: 36, height: 36)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .overlay(
+                EmptyView().navigationBarBackButtonHidden(true)
+            )
+            ScrollView {
+                if viewModel.isLoading {
+                    ProfileSkeletonView()
+                } else {
+                    VStack(spacing: 18) {
+                        // Profil Fotoğrafı
+                        if let urlString = viewModel.photoURL, let url = URL(string: urlString), !urlString.isEmpty {
+                            WebImage(url: url)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 96, height: 96)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(Color.purple, lineWidth: 2))
+                                .shadow(radius: 4)
+                        } else {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .frame(width: 96, height: 96)
+                                .foregroundColor(.gray.opacity(0.4))
                         }
-                        .buttonStyle(.borderedProminent)
-                    } else {
-                        Button("Takip Et") {
-                            // Takip et akışı (ileride)
+                        // Display Name
+                        Text(viewModel.displayName.isEmpty ? "Kullanıcı" : viewModel.displayName)
+                            .font(.title2.bold())
+                            .padding(.top, 2)
+                        // Takipçi ve Takip edilen sayıları
+                        HStack(spacing: 32) {
+                            Button(action: { showFollowersPage = true }) {
+                                VStack {
+                                    Text("\(viewModel.followersCount)")
+                                        .foregroundColor(.primary)
+                                        .font(.title3)
+                                    Text("Takipçi")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            Button(action: { showFollowsPage = true }) {
+                                VStack {
+                                    Text("\(viewModel.followsCount)")
+                                        .foregroundColor(.primary)
+                                        .font(.title3)
+                                    Text("Takip")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
-                        .buttonStyle(.bordered)
+                        // Butonlar
+                        if viewModel.isCurrentUser {
+                            Button {
+                                showEdit = true
+                            } label: {
+                                Text("Profili Düzenle")
+                                    .font(.subheadline.bold())
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(Color.purple.opacity(0.1))
+                                    .foregroundColor(.purple)
+                                    .cornerRadius(12)
+                            }
+                            .padding(.horizontal, 32)
+                        } else {
+                            Button {
+                                if viewModel.isFollowing {
+                                    viewModel.unfollow()
+                                } else {
+                                    viewModel.follow()
+                                }
+                            } label: {
+                                Text(viewModel.isFollowing ? "Takipten Çık" : "Takip Et")
+                                    .font(.subheadline.bold())
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(viewModel.isFollowing ? Color.gray.opacity(0.15) : Color.purple)
+                                    .foregroundColor(viewModel.isFollowing ? .primary : .white)
+                                    .cornerRadius(12)
+                            }
+                            .padding(.horizontal, 32)
+                        }
+                        // Bio
+                        if !viewModel.bio.isEmpty {
+                            Text(viewModel.bio)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        }
+                    }
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity)
+                    if let error = viewModel.errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .padding()
                     }
                 }
-                Spacer()
             }
-            .padding()
-            .navigationDestination(isPresented: $showEdit) {
-                EditProfilePage(userId: viewModel.userId)
+            .refreshable {
+                viewModel.fetchUser()
+                if !viewModel.isCurrentUser {
+                    viewModel.checkIfFollowing()
+                }
             }
+            .background(Color(.systemBackground))
+        }
+        .onAppear { isProfileRoot = true }
+        .navigationDestination(isPresented: $showEdit) {
+            EditProfilePage(userId: viewModel.userId)
+                .onAppear { isProfileRoot = false }
+        }
+        .navigationDestination(isPresented: $showFollowersPage) {
+            FollowersListPage(userId: viewModel.userId, onUserTap: { userId in selectedUserId = userId })
+        }
+        .navigationDestination(isPresented: $showFollowsPage) {
+            FollowsListPage(userId: viewModel.userId, onUserTap: { userId in selectedUserId = userId })
+        }
+        .navigationDestination(item: $selectedUserId) { userId in
+            ProfilePage(userId: userId)
+        }
+    }
+    
+    private func signOut() {
+        do {
+            try Auth.auth().signOut()
+            // Uygulama state'inizi güncelleyin (ör: ana ekrana yönlendirme)
+        } catch {
+            // Hata yönetimi
         }
     }
 }
 
-#Preview {
-    ProfilePage()
-} 
+struct ProfileSkeletonView: View {
+    var body: some View {
+        VStack(spacing: 18) {
+            // Profil fotoğrafı skeleton
+            Circle()
+                .fill(Color(.systemGray5))
+                .frame(width: 96, height: 96)
+                .shimmer()
+            // İsim ve kullanıcı adı skeleton
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray5))
+                .frame(width: 120, height: 20)
+                .shimmer()
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray5))
+                .frame(width: 80, height: 16)
+                .shimmer()
+            // Bio skeleton
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray5))
+                .frame(width: 180, height: 16)
+                .shimmer()
+            // Takipçi ve takip skeleton
+            HStack(spacing: 32) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 40, height: 18)
+                    .shimmer()
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 40, height: 18)
+                    .shimmer()
+            }
+            Spacer()
+        }
+        .padding(.top, 32)
+        .padding(.bottom, 16)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// Shimmer effect modifier
+extension View {
+    func shimmer() -> some View {
+        self
+            .redacted(reason: .placeholder)
+            .overlay(
+                ShimmerView()
+                    .mask(self)
+            )
+    }
+}
+
+struct ShimmerView: View {
+    @State private var phase: CGFloat = 0
+    var body: some View {
+        LinearGradient(gradient: Gradient(colors: [Color(.systemGray5), Color(.systemGray4), Color(.systemGray5)]), startPoint: .leading, endPoint: .trailing)
+            .rotationEffect(.degrees(30))
+            .offset(x: phase * 350)
+            .animation(Animation.linear(duration: 1.2).repeatForever(autoreverses: false), value: phase)
+            .onAppear { phase = 1 }
+    }
+}

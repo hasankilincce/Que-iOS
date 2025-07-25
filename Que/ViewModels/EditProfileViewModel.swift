@@ -6,6 +6,8 @@ import UIKit
 
 class EditProfileViewModel: ObservableObject {
     @Published var displayName: String = ""
+    @Published var username: String = ""
+    @Published var bio: String = ""
     @Published var email: String = ""
     @Published var photoURL: String = ""
     @Published var localProfileImage: UIImage? = nil // Geçici seçilen fotoğraf
@@ -29,6 +31,8 @@ class EditProfileViewModel: ObservableObject {
         listener = db.collection("users").document(userId).addSnapshotListener { [weak self] snapshot, error in
             if let data = snapshot?.data() {
                 self?.displayName = data["displayName"] as? String ?? ""
+                self?.username = data["username"] as? String ?? ""
+                self?.bio = data["bio"] as? String ?? ""
                 self?.email = data["email"] as? String ?? ""
                 self?.photoURL = data["photoURL"] as? String ?? ""
             }
@@ -83,9 +87,13 @@ class EditProfileViewModel: ObservableObject {
                 return
             }
             let db = Firestore.firestore()
+            let keywords = EditProfileViewModel.generateSearchKeywords(displayName: self?.displayName ?? "", username: self?.username ?? "")
             db.collection("users").document(self?.userId ?? "").updateData([
                 "displayName": self?.displayName ?? "",
-                "photoURL": self?.photoURL ?? ""
+                "username": self?.username ?? "",
+                "bio": self?.bio ?? "",
+                "photoURL": self?.photoURL ?? "",
+                "searchKeywords": keywords
             ]) { err in
                 DispatchQueue.main.async {
                     self?.isLoading = false
@@ -99,5 +107,14 @@ class EditProfileViewModel: ObservableObject {
                 }
             }
         }
+    }
+    
+    static func generateSearchKeywords(displayName: String, username: String) -> [String] {
+        let nameParts = displayName.lowercased().split(separator: " ").map { String($0) }
+        var keywords: Set<String> = []
+        for part in nameParts { keywords.insert(part) }
+        keywords.insert(displayName.lowercased())
+        keywords.insert(username.lowercased())
+        return Array(keywords)
     }
 } 

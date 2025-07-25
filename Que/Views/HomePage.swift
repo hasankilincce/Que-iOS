@@ -1,46 +1,98 @@
 import SwiftUI
 
+
 struct HomePage: View {
-    @StateObject private var viewModel = HomeViewModel()
-    @State private var showProfile = false
+    @State private var selectedTab: Tab = .home
+    @State private var isProfileRoot: Bool = true
+    @StateObject private var exploreVM = ExploreViewModel()
+    @State private var selectedUserId: String? = nil
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 32) {
-                Text("Hoşgeldin, \(viewModel.displayName)")
-                    .font(.largeTitle)
-                    .bold()
-                    .padding(.top, 40)
-                Button(action: {
-                    viewModel.signOut()
-                }) {
-                    Text("Çıkış Yap")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+        ZStack(alignment: .bottom) {
+            Group {
+                switch selectedTab {
+                case .home:
+                    FeedView()
+                case .explore:
+                    ExploreView(viewModel: exploreVM, selectedUserId: $selectedUserId)
+                case .add:
+                    AddPostView()
+                case .notifications:
+                    NotificationsView()
+                case .profile:
+                    ProfileTabNavigation(isProfileRoot: $isProfileRoot)
                 }
-                Spacer()
             }
-            .padding()
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showProfile = true
-                    }) {
-                        Image(systemName: "person.circle")
-                            .font(.title)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Sadece ana sekmelerde ve profile root'ta tab bar göster
+            if (selectedTab != .add) && (selectedTab != .profile || isProfileRoot) {
+                CustomTabBar(selectedTab: $selectedTab, onTabTapped: { tab in
+                    if tab == .explore {
+                        selectedUserId = nil // Keşfet sekmesine tekrar tıklanınca ana sayfaya dön
                     }
-                }
+                })
             }
-            .navigationDestination(isPresented: $showProfile) {
-                ProfilePage()
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .background(Color(.systemBackground))
+    }
+}
+
+// Profile sekmesi için navigation stack
+struct ProfileTabNavigation: View {
+    @Binding var isProfileRoot: Bool
+    var body: some View {
+        NavigationStack {
+            ProfilePage(isProfileRoot: $isProfileRoot)
+        }
+    }
+}
+
+// Placeholder views for each tab
+struct FeedView: View {
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Text("Anasayfa")
+                    .font(.largeTitle.bold())
+                Spacer()
             }
         }
     }
 }
 
-#Preview {
-    HomePage()
-} 
+/*struct ExploreView: View {
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Text("Keşfet")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+        }
+    }
+}*/
+
+struct AddPostView: View {
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Text("Gönderi Ekle")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+        }
+    }
+}
+
+struct NotificationsView: View {
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Text("Bildirimler")
+                    .font(.largeTitle.bold())
+                Spacer()
+            }
+        }
+    }
+}
