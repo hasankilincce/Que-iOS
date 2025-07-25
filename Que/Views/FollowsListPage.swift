@@ -35,11 +35,9 @@ struct FollowsListPage: View {
                 EmptyView().navigationBarBackButtonHidden(true)
             )
             List {
-                ForEach(users, id: \.id) { user in
-                    FollowerRow(user: user, onUserTap: onUserTap, onFollowChanged: { isNowFollowing in
-                        if let idx = users.firstIndex(where: { $0.id == user.id }) {
-                            users[idx].isFollowing = isNowFollowing
-                        }
+                ForEach($users, id: \.id) { $user in
+                    FollowerRow(user: user, isFollowing: $user.isFollowing, onUserTap: onUserTap, onFollowChanged: { isNowFollowing in
+                        user.isFollowing = isNowFollowing
                     })
                     .onAppear {
                         if user == users.last, !isLoading, !allLoaded {
