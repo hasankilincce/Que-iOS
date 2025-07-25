@@ -1,14 +1,44 @@
 import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
 
 // Tab enumu
 enum Tab: Int, CaseIterable {
     case home, explore, add, notifications, profile
 }
 
+// Bildirim badge için ViewModel
+class NotificationBadgeViewModel: ObservableObject {
+    @Published var unreadCount: Int = 0
+    private var listener: ListenerRegistration?
+    
+    init() {
+        listenToNotifications()
+    }
+    
+    deinit {
+        listener?.remove()
+    }
+    
+    private func listenToNotifications() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        let db = Firestore.firestore()
+        listener = db.collection("users").document(userId)
+            .collection("notifications")
+            .whereField("isRead", isEqualTo: false)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                DispatchQueue.main.async {
+                    self?.unreadCount = snapshot?.documents.count ?? 0
+                }
+            }
+    }
+}
+
 // CustomTabBar component
 struct CustomTabBar: View {
     @Binding var selectedTab: Tab
     var onTabTapped: ((Tab) -> Void)? = nil
+    @StateObject private var badgeVM = NotificationBadgeViewModel()
     
     private let tabBarHeight: CGFloat = 62
     private let tabBarCornerRadius: CGFloat = 24
@@ -48,7 +78,7 @@ struct CustomTabBar: View {
                 }
                 .offset(y: plusButtonOffset)
                 .frame(width: plusButtonSize + 12)
-                tabButton(tab: .notifications, icon: "bell", selectedIcon: "bell.fill", label: "Bildirim")
+                tabButtonWithBadge(tab: .notifications, icon: "bell", selectedIcon: "bell.fill", label: "Bildirim", badgeCount: badgeVM.unreadCount)
                 tabButton(tab: .profile, icon: "person", selectedIcon: "person.fill", label: "Profilim")
             }
             .padding(.horizontal, 24)
@@ -70,6 +100,42 @@ struct CustomTabBar: View {
                 Image(systemName: selectedTab == tab ? selectedIcon : icon)
                     .font(.system(size: tabIconSize, weight: .semibold))
                     .foregroundColor(selectedTab == tab ? Color.purple : Color.gray.opacity(0.7))
+                Text(label)
+                    .font(tabFont)
+                    .foregroundColor(selectedTab == tab ? Color.purple : Color.gray.opacity(0.7))
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+        }
+    }
+    
+    @ViewBuilder
+    private func tabButtonWithBadge(tab: Tab, icon: String, selectedIcon: String, label: String, badgeCount: Int) -> some View {
+        Button(action: {
+            if selectedTab == tab {
+                onTabTapped?(tab)
+            }
+            selectedTab = tab
+        }) {
+            VStack(spacing: 0) {
+                ZStack {
+                    Image(systemName: selectedTab == tab ? selectedIcon : icon)
+                        .font(.system(size: tabIconSize, weight: .semibold))
+                        .foregroundColor(selectedTab == tab ? Color.purple : Color.gray.opacity(0.7))
+                    
+                    // Badge
+                    if badgeCount > 0 {
+                        Text(badgeCount > 99 ? "99+" : "\(badgeCount)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, badgeCount > 9 ? 4 : 0)
+                            .frame(minWidth: 16, minHeight: 16)
+                            .background(
+                                Circle()
+                                    .fill(Color.red)
+                            )
+                            .offset(x: 10, y: -8)
+                    }
+                }
                 Text(label)
                     .font(tabFont)
                     .foregroundColor(selectedTab == tab ? Color.purple : Color.gray.opacity(0.7))
