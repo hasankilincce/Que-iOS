@@ -63,26 +63,8 @@ struct ExploreView: View {
                             // Arama sonuçları
                             if viewModel.isLoading {
                                 VStack(spacing: 0) {
-                                    ForEach(0..<6) { _ in
-                                        HStack(spacing: 12) {
-                                            Circle()
-                                                .fill(Color(.systemGray6))
-                                                .frame(width: 40, height: 40)
-                                                .shimmer()
-                                            VStack(alignment: .leading, spacing: 6) {
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color(.systemGray6))
-                                                    .frame(width: 120, height: 16)
-                                                    .shimmer()
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color(.systemGray5))
-                                                    .frame(width: 80, height: 12)
-                                                    .shimmer()
-                                            }
-                                            Spacer()
-                                        }
-                                        .padding(.vertical, 10)
-                                        .padding(.horizontal, 16)
+                                    ForEach(0..<6, id: \.self) { index in
+                                        ExploreSkeletonRow(variant: index)
                                     }
                                 }
                                 .padding(.top, 8)
@@ -212,3 +194,4 @@ struct ExploreView: View {
         }
     }
 }
+ 

@@ -35,18 +35,26 @@ struct FollowsListPage: View {
                 EmptyView().navigationBarBackButtonHidden(true)
             )
             List {
-                ForEach($users, id: \.id) { $user in
-                    FollowerRow(user: user, isFollowing: $user.isFollowing, onUserTap: onUserTap, onFollowChanged: { isNowFollowing in
-                        user.isFollowing = isNowFollowing
-                    })
-                    .onAppear {
-                        if user == users.last, !isLoading, !allLoaded {
-                            loadMore()
+                if isLoading && users.isEmpty {
+                    // İlk yüklenme skeleton'ı
+                    ForEach(0..<6, id: \.self) { index in
+                        FollowerSkeletonRow(variant: index)
+                            .listRowSeparator(.hidden)
+                    }
+                } else {
+                    ForEach($users, id: \.id) { $user in
+                        FollowerRow(user: user, isFollowing: $user.isFollowing, onUserTap: onUserTap, onFollowChanged: { isNowFollowing in
+                            user.isFollowing = isNowFollowing
+                        })
+                        .onAppear {
+                            if user == users.last, !isLoading, !allLoaded {
+                                loadMore()
+                            }
                         }
                     }
-                }
-                if isLoading && users.count > 0 {
-                    HStack { Spacer(); ProgressView(); Spacer() }
+                    if isLoading && users.count > 0 {
+                        HStack { Spacer(); ProgressView(); Spacer() }
+                    }
                 }
             }
             .listStyle(.plain)
@@ -96,3 +104,4 @@ struct FollowsListPage: View {
         }
     }
 } 
+ 
