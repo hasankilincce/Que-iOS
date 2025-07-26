@@ -33,10 +33,10 @@ struct HomePage: View {
                         exploreVM.query = ""
                     }
                 })
+                }
             }
-        }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .background(Color(.systemBackground))
-    }
-}
+            }
+        }
 
