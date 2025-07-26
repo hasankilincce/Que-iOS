@@ -8,11 +8,9 @@ struct LoginPage: View {
     @State private var showPassword: Bool = false
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
-    @FocusState private var focusedField: Field?
+    @FocusState private var focusedField: LoginField?
     @State private var showRegister = false
     @State private var showReset = false
-    
-    enum Field { case username, password }
     
     var body: some View {
         NavigationStack {

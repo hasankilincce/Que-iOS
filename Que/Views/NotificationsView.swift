@@ -3,178 +3,122 @@ import SDWebImageSwiftUI
 import FirebaseAuth
 import FirebaseFirestore
 
-struct NotificationItem: Identifiable {
-    let id: String
-    let type: String
-    let fromUserId: String
-    let fromDisplayName: String
-    let fromUsername: String
-    let fromPhotoURL: String?
-    let createdAt: Date
-    let isRead: Bool
-    // Ekstra alanlar (like, comment, mention için)
-    let postId: String?
-    let commentText: String?
-}
-
-class NotificationsViewModel: ObservableObject {
-    @Published var notifications: [NotificationItem] = []
-    private var listener: ListenerRegistration?
-    
-    init() {
-        listenNotifications()
-    }
-    
-    deinit {
-        listener?.remove()
-    }
-    
-    func listenNotifications() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-        listener = db.collection("users").document(userId)
-            .collection("notifications")
-            .order(by: "createdAt", descending: true)
-            .addSnapshotListener { [weak self] snapshot, _ in
-                guard let docs = snapshot?.documents else { return }
-                self?.notifications = docs.compactMap { doc in
-                    let data = doc.data()
-                    guard let type = data["type"] as? String,
-                          let fromUserId = data["fromUserId"] as? String,
-                          let fromDisplayName = data["fromDisplayName"] as? String,
-                          let fromUsername = data["fromUsername"] as? String,
-                          let createdAt = (data["createdAt"] as? Timestamp)?.dateValue(),
-                          let isRead = data["isRead"] as? Bool else { return nil }
-                    return NotificationItem(
-                        id: doc.documentID,
-                        type: type,
-                        fromUserId: fromUserId,
-                        fromDisplayName: fromDisplayName,
-                        fromUsername: fromUsername,
-                        fromPhotoURL: data["fromPhotoURL"] as? String,
-                        createdAt: createdAt,
-                        isRead: isRead,
-                        postId: data["postId"] as? String,
-                        commentText: data["commentText"] as? String
-                    )
-                }
-            }
-    }
-    
-    func markAsRead(_ notif: NotificationItem) {
-        guard !notif.isRead, let userId = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-        db.collection("users").document(userId)
-            .collection("notifications").document(notif.id)
-            .updateData(["isRead": true])
-    }
-    
-    func markAllVisibleAsRead() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-        let batch = db.batch()
-        
-        // Görünen ve okunmamış tüm bildirimleri işaretle
-        let unreadNotifications = notifications.filter { !$0.isRead }
-        for notif in unreadNotifications {
-            let notifRef = db.collection("users").document(userId)
-                .collection("notifications").document(notif.id)
-            batch.updateData(["isRead": true], forDocument: notifRef)
-        }
-        
-        // Batch commit
-        batch.commit { error in
-            if let error = error {
-                print("Bildirimler okundu olarak işaretlenirken hata: \(error)")
-            }
-        }
-    }
-}
-
 struct NotificationsView: View {
     @StateObject private var viewModel = NotificationsViewModel()
     @State private var selectedUserId: String? = nil
     
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(viewModel.notifications) { notif in
-                    Button(action: {
-                        viewModel.markAsRead(notif)
-                        if notif.type == "follow" || notif.type == "like" || notif.type == "mention" {
-                            selectedUserId = notif.fromUserId
+            ZStack {
+                if viewModel.isLoading && viewModel.notifications.isEmpty {
+                    // Loading state
+                    VStack(spacing: 16) {
+                        ForEach(0..<8, id: \.self) { _ in
+                            NotificationSkeletonRow()
                         }
-                        // Yorum bildirimi için postId ile post detayına gidebilirsin
-                    }) {
-                        HStack(spacing: 12) {
-                            if let url = URL(string: notif.fromPhotoURL ?? ""), !(notif.fromPhotoURL ?? "").isEmpty {
-                                WebImage(url: url)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 44, height: 44)
-                                    .clipShape(Circle())
-                            } else {
-                                Circle()
-                                    .fill(Color(.systemGray5))
-                                    .frame(width: 44, height: 44)
-                                    .overlay(
-                                        Image(systemName: "person.crop.circle.fill")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .foregroundColor(.gray.opacity(0.3))
-                                            .padding(4)
-                                    )
-                            }
-                            VStack(alignment: .leading, spacing: 2) {
-                                if notif.type == "follow" {
-                                    Text("\(notif.fromDisplayName) seni takip etmeye başladı")
-                                        .font(.body)
-                                } else if notif.type == "like" {
-                                    Text("\(notif.fromDisplayName) gönderini beğendi")
-                                        .font(.body)
-                                } else if notif.type == "comment" {
-                                    Text("\(notif.fromDisplayName) gönderine yorum yaptı: \(notif.commentText ?? "")")
-                                        .font(.body)
-                                } else if notif.type == "mention" {
-                                    Text("\(notif.fromDisplayName) bir gönderide seni etiketledi")
-                                        .font(.body)
-                                } else {
-                                    Text("Bilinmeyen bildirim")
-                                        .font(.body)
-                                }
-                                Text("@\(notif.fromUsername)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Text(timeAgo(notif.createdAt))
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 6)
-                        .background(notif.isRead ? Color(.systemBackground) : Color.purple.opacity(0.07))
-                        .cornerRadius(8)
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                } else if viewModel.notifications.isEmpty {
+                    // Empty state
+                    VStack(spacing: 20) {
+                        Image(systemName: "bell.slash")
+                            .font(.system(size: 64))
+                            .foregroundColor(.gray.opacity(0.5))
+                        
+                        VStack(spacing: 8) {
+                            Text("Henüz bildirim yok")
+                                .font(.title2.bold())
+                                .foregroundColor(.primary)
+                            
+                            Text("Takipçilerin ve etkileşimlerle ilgili bildirimler burada görünecek")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    // Content
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(groupedNotifications.keys.sorted(by: groupSortOrder), id: \.self) { group in
+                                if let notifs = groupedNotifications[group] {
+                                    Group {
+                                        GroupHeader(title: group)
+                                        ForEach(notifs) { notif in
+                                            NotificationRow(
+                                                notification: notif,
+                                                onTap: {
+                                                    viewModel.markAsRead(notif)
+                                                    if notif.type == "follow" || notif.type == "like" || notif.type == "mention" {
+                                                        selectedUserId = notif.fromUserId
+                                                    }
+                                                }
+                                            )
+                                            .padding(.horizontal, 16)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.top, 8)
+                        .padding(.bottom, 100)
+                    }
+                    .refreshable {
+                        viewModel.refresh()
+                    }
                 }
             }
-            .listStyle(.plain)
             .navigationTitle("Bildirimler")
+            .navigationBarTitleDisplayMode(.large)
             .navigationDestination(item: $selectedUserId) { userId in
                 ProfilePage(userId: userId)
             }
-            .onAppear {
-                // Sayfa açılınca görünen tüm bildirimleri okundu olarak işaretle
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    viewModel.markAllVisibleAsRead()
-                }
+                    .onAppear {
+            // Badge sayısını temizle
+            NotificationManager.shared.clearBadge()
+            
+            // Sayfa açılınca görünen tüm bildirimleri okundu olarak işaretle
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                viewModel.markAllVisibleAsRead()
             }
+        }
+        }
+    }
+}
+
+// Bildirimleri gruplandırmak için yardımcı fonksiyonlar
+extension NotificationsView {
+    var groupedNotifications: [String: [NotificationItem]] {
+        Dictionary(grouping: viewModel.notifications) { notif in
+            groupTitle(for: notif.createdAt)
         }
     }
     
-    func timeAgo(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: Date())
+    func groupTitle(for date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return "Bugün"
+        } else if calendar.isDateInYesterday(date) {
+            return "Dün"
+        } else if let days = calendar.dateComponents([.day], from: date, to: Date()).day {
+            if days < 7 {
+                return "Son 7 Gün"
+            } else if days < 30 {
+                return "Son 30 Gün"
+            } else {
+                return "Daha Eski"
+            }
+        }
+        return "Daha Eski"
     }
-} 
+    
+    func groupSortOrder(_ a: String, _ b: String) -> Bool {
+        let order = ["Bugün", "Dün", "Son 7 Gün", "Son 30 Gün", "Daha Eski"]
+        return (order.firstIndex(of: a) ?? 99) < (order.firstIndex(of: b) ?? 99)
+    }
+}
+
+
