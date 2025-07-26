@@ -64,7 +64,7 @@ struct RegisterPage: View {
                             .textFieldStyle(.roundedBorder)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
-                            .onChange(of: viewModel.username) { newValue in
+                            .onChange(of: viewModel.username) { _, newValue in
                                 let lower = newValue.lowercased()
                                 if lower != newValue { viewModel.username = lower }
                                 viewModel.checkUsernameAvailability()

@@ -1,5 +1,6 @@
 import SwiftUI
 import SDWebImageSwiftUI
+import FirebaseAuth
 import TOCropViewController
 
 
@@ -116,8 +117,9 @@ struct OnboardingProfilePage: View {
                         .disabled(viewModel.displayName.trimmingCharacters(in: .whitespaces).isEmpty && step == 0)
                     } else {
                         Button(action: {
+                            guard let user = Auth.auth().currentUser else { return }
                             Task {
-                                await viewModel.saveProfile()
+                                await viewModel.saveProfile(user: user)
                                 appState.needsOnboarding = false
                             }
                         }) {
@@ -152,8 +154,8 @@ struct OnboardingProfilePage: View {
                         }
                     }
             }
-            .onChange(of: viewModel.success) { newValue in
-                if newValue {
+            .onChange(of: viewModel.success) {
+                if viewModel.success {
                     appState.needsOnboarding = false
                 }
             }
