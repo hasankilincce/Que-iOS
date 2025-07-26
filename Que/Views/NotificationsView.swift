@@ -4,20 +4,6 @@ import FirebaseAuth
 import FirebaseFirestore
 import UserNotifications
 
-struct NotificationItem: Identifiable {
-    let id: String
-    let type: String
-    let fromUserId: String
-    let fromDisplayName: String
-    let fromUsername: String
-    let fromPhotoURL: String?
-    let createdAt: Date
-    let isRead: Bool
-    // Ekstra alanlar (like, comment, mention için)
-    let postId: String?
-    let commentText: String?
-}
-
 class NotificationsViewModel: ObservableObject {
     @Published var notifications: [NotificationItem] = []
     @Published var isLoading: Bool = false
@@ -44,25 +30,7 @@ class NotificationsViewModel: ObservableObject {
                     self?.isLoading = false
                     guard let docs = snapshot?.documents else { return }
                     self?.notifications = docs.compactMap { doc in
-                        let data = doc.data()
-                        guard let type = data["type"] as? String,
-                              let fromUserId = data["fromUserId"] as? String,
-                              let fromDisplayName = data["fromDisplayName"] as? String,
-                              let fromUsername = data["fromUsername"] as? String,
-                              let createdAt = (data["createdAt"] as? Timestamp)?.dateValue(),
-                              let isRead = data["isRead"] as? Bool else { return nil }
-                        return NotificationItem(
-                            id: doc.documentID,
-                            type: type,
-                            fromUserId: fromUserId,
-                            fromDisplayName: fromDisplayName,
-                            fromUsername: fromUsername,
-                            fromPhotoURL: data["fromPhotoURL"] as? String,
-                            createdAt: createdAt,
-                            isRead: isRead,
-                            postId: data["postId"] as? String,
-                            commentText: data["commentText"] as? String
-                        )
+                        NotificationItem(id: doc.documentID, data: doc.data())
                     }
                 }
             }
@@ -380,36 +348,63 @@ struct NotificationRow: View {
 struct NotificationSkeletonRow: View {
     var body: some View {
         HStack(spacing: 12) {
-            // Profile foto skeleton
+            // Profile foto skeleton - exactly matching real size
             Circle()
                 .fill(Color(.systemGray6))
                 .frame(width: 52, height: 52)
                 .shimmer()
             
-            VStack(alignment: .leading, spacing: 8) {
-                // Ana mesaj skeleton
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(.systemGray6))
-                    .frame(height: 16)
-                    .frame(maxWidth: .infinity)
-                    .shimmer()
-                
-                // Alt bilgi skeleton
-                HStack(spacing: 8) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(.systemGray6))
-                        .frame(width: 80, height: 12)
-                        .shimmer()
+            // İçerik skeleton - matching real structure
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Ana mesaj skeleton - 2-3 lines like real notifications
+                        VStack(alignment: .leading, spacing: 3) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color(.systemGray6))
+                                .frame(height: 14)
+                                .frame(maxWidth: .infinity)
+                                .shimmer()
+                            
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color(.systemGray6))
+                                .frame(height: 14)
+                                .frame(width: 220)
+                                .shimmer()
+                        }
+                        
+                        // Username ve zaman skeleton - matching real layout
+                        HStack(spacing: 8) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color(.systemGray6))
+                                .frame(width: 85, height: 10)
+                                .shimmer()
+                            
+                            Circle()
+                                .fill(Color(.systemGray6))
+                                .frame(width: 2, height: 2)
+                                .shimmer()
+                            
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color(.systemGray6))
+                                .frame(width: 45, height: 10)
+                                .shimmer()
+                        }
+                    }
                     
-                    RoundedRectangle(cornerRadius: 4)
+                    Spacer()
+                    
+                    // Bildirim tipi ikonu skeleton - matching real icon position
+                    RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
-                        .frame(width: 40, height: 12)
+                        .frame(width: 16, height: 16)
                         .shimmer()
                 }
             }
             
-            Spacer()
+            Spacer(minLength: 0)
         }
         .padding(.vertical, 16)
+        .background(Color(.systemBackground))
     }
 }
