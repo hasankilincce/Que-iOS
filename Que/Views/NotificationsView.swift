@@ -11,18 +11,13 @@ struct NotificationsView: View {
         NavigationStack {
             ZStack {
                 if viewModel.isLoading && viewModel.notifications.isEmpty {
-                    // Loading state - farklı skeleton varyasyonları
-                    VStack(spacing: 0) {
-                        ForEach(0..<8, id: \.self) { index in
-                            if index < 3 {
-                                NotificationSkeletonVariant(variant: index % 3)
-                                    .padding(.horizontal, 16)
-                            } else {
-                                NotificationSkeletonRow()
-                                    .padding(.horizontal, 16)
-                            }
+                    // Loading state
+                    VStack(spacing: 16) {
+                        ForEach(0..<8, id: \.self) { _ in
+                            NotificationSkeletonRow()
                         }
                     }
+                    .padding(.horizontal, 16)
                     .padding(.top, 12)
                 } else if viewModel.notifications.isEmpty {
                     // Empty state
@@ -127,4 +122,3 @@ extension NotificationsView {
 }
 
 
- 
