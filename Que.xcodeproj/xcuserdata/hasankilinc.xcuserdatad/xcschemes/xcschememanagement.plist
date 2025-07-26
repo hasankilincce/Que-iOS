@@ -5,6 +5,7 @@
 	<key>SchemeUserState</key>
 	<dict>
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 		<key>Que.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
@@ -13,6 +14,11 @@
 		<key>Promises (Playground) 1.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
+=======
+		<key>Promises (Playground) 1.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+>>>>>>> Stashed changes
 			<integer>3</integer>
 		</dict>
 		<key>Promises (Playground) 2.xcscheme</key>
@@ -44,6 +50,14 @@
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
 		<key>7012050D2E311FEA00BCA5A6</key>
+<<<<<<< Updated upstream
+=======
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>701206242E350F3F00BCA5A6</key>
+>>>>>>> Stashed changes
 		<dict>
 			<key>primary</key>
 			<true/>
