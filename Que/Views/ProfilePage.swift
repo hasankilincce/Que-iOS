@@ -63,22 +63,22 @@ struct ProfilePage: View {
                 } else {
                     VStack(spacing: 12) {
                         // Profil Fotoğrafı
-                    if let urlString = viewModel.photoURL, let url = URL(string: urlString), !urlString.isEmpty {
-                        WebImage(url: url)
-                            .resizable()
-                            .scaledToFill()
+                        if let urlString = viewModel.photoURL, let url = URL(string: urlString), !urlString.isEmpty {
+                            WebImage(url: url)
+                                .resizable()
+                                .scaledToFill()
                                 .frame(width: 96, height: 96)
-                            .clipShape(Circle())
+                                .clipShape(Circle())
                                 .overlay(Circle().stroke(Color.purple, lineWidth: 2))
                                 .shadow(radius: 4)
-                    } else {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
+                        } else {
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
                                 .frame(width: 96, height: 96)
                                 .foregroundColor(.gray.opacity(0.4))
-                    }
+                        }
                         // Display Name
-                    Text(viewModel.displayName.isEmpty ? "Kullanıcı" : viewModel.displayName)
+                        Text(viewModel.displayName.isEmpty ? "Kullanıcı" : viewModel.displayName)
                             .font(.title2.bold())
                             .padding(.top, 2)
                         // Takipçi ve Takip edilen sayıları
@@ -105,9 +105,9 @@ struct ProfilePage: View {
                             }
                         }
                         // Butonlar
-                    if viewModel.isCurrentUser {
+                        if viewModel.isCurrentUser {
                             Button {
-                            showEdit = true
+                                showEdit = true
                             } label: {
                                 Text("Profili Düzenle")
                                     .font(.subheadline.bold())
@@ -164,8 +164,8 @@ struct ProfilePage: View {
             .background(Color(.systemBackground))
         }
         .onAppear { isProfileRoot = true }
-            .navigationDestination(isPresented: $showEdit) {
-                EditProfilePage(userId: viewModel.userId)
+        .navigationDestination(isPresented: $showEdit) {
+            EditProfilePage(userId: viewModel.userId)
                 .onAppear { isProfileRoot = false }
         }
         .navigationDestination(isPresented: $showFollowersPage) {
@@ -191,76 +191,42 @@ struct ProfilePage: View {
 
 struct ProfileSkeletonView: View {
     var body: some View {
-        VStack(spacing: 16) {
-            // Profil fotoğrafı skeleton (gerçek boyut ve style)
+        VStack(spacing: 18) {
+            // Profil fotoğrafı skeleton
             Circle()
-                .fill(Color(.systemGray6))
+                .fill(Color(.systemGray5))
                 .frame(width: 96, height: 96)
-                .overlay(
-                    Circle()
-                        .stroke(Color(.systemGray5), lineWidth: 2)
-                )
                 .shimmer()
-            
-            // Display name skeleton (gerçekçi uzunluk)
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color(.systemGray6))
-                .frame(width: 140, height: 22)
+            // İsim skeleton
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray5))
+                .frame(width: 120, height: 20)
                 .shimmer()
-            
-            // Takipçi ve takip sayıları skeleton
+            // Takipçi ve takip skeleton
             HStack(spacing: 32) {
-                VStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(.systemGray6))
-                        .frame(width: 30, height: 18)
-                        .shimmer()
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(.systemGray5))
-                        .frame(width: 50, height: 12)
-                        .shimmer()
-                }
-                
-                VStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(.systemGray6))
-                        .frame(width: 30, height: 18)
-                        .shimmer()
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(.systemGray5))
-                        .frame(width: 40, height: 12)
-                        .shimmer()
-                }
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 40, height: 18)
+                    .shimmer()
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 40, height: 18)
+                    .shimmer()
             }
-            .padding(.vertical, 8)
-            
-            // Button skeleton (gerçek button boyutunda)
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemGray6))
-                .frame(height: 40)
-                .padding(.horizontal, 32)
+            // Button skeleton
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray5))
+                .frame(width: 80, height: 16)
                 .shimmer()
-            
-            // Bio skeleton (çok satırlı görünüm)
-            VStack(spacing: 6) {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(.systemGray5))
-                    .frame(width: 220, height: 14)
-                    .shimmer()
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(.systemGray5))
-                    .frame(width: 180, height: 14)
-                    .shimmer()
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(.systemGray5))
-                    .frame(width: 160, height: 14)
-                    .shimmer()
-            }
-            .padding(.horizontal, 24)
+            // Bio skeleton
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.systemGray5))
+                .frame(width: 180, height: 16)
+                .shimmer()
             
             Spacer()
         }
-        .padding(.top, 24)
+        .padding(.top, 32)
         .padding(.bottom, 16)
         .frame(maxWidth: .infinity)
     }
