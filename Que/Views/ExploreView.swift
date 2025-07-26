@@ -4,73 +4,50 @@ import SDWebImageSwiftUI
 struct ExploreView: View {
     @ObservedObject var viewModel: ExploreViewModel
     @Binding var selectedUserId: String?
+    @Binding var isSearching: Bool
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Search bar
+                // Sabit SearchBar (her zaman en üstte)
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
-                    TextField("Kullanıcı ara...", text: $viewModel.query)
-                        .autocapitalization(.none)
-                        .disableAutocorrection(true)
-                        .onChange(of: viewModel.query) { _ in
-                            viewModel.searchUsers()
+                    TextField("Kullanıcı ara...", text: $viewModel.query, onEditingChanged: { editing in
+                        if editing { isSearching = true }
+                    })
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .onChange(of: viewModel.query) { _ in
+                        viewModel.searchUsers()
+                    }
+                    if isSearching {
+                        Button(action: {
+                            isSearching = false
+                            viewModel.query = ""
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.gray)
+                                .font(.title3)
                         }
+                    }
                 }
                 .padding(10)
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
                 .padding(.horizontal)
                 .padding(.top, 12)
-                // Sonuçlar
-                List {
-                    ForEach(viewModel.results, id: \._id) { user in
-                        Button(action: { selectedUserId = user.id }) {
-                            HStack(spacing: 12) {
-                                if let url = URL(string: user.photoURL ?? ""), !(user.photoURL ?? "").isEmpty {
-                                    WebImage(url: url)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 40, height: 40)
-                                        .clipShape(Circle())
-                                        .background(
-                                            Circle()
-                                                .fill(Color(.systemGray5))
-                                                .frame(width: 40, height: 40)
-                                        )
-                                } else {
-                                    Circle()
-                                        .fill(Color(.systemGray5))
-                                        .frame(width: 40, height: 40)
-                                        .overlay(
-                                            Image(systemName: "person.crop.circle.fill")
-                                                .resizable()
-                                                .scaledToFit()
-                                                .foregroundColor(.gray.opacity(0.3))
-                                                .padding(4)
-                                        )
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(user.displayName)
-                                        .font(.headline)
-                                    Text("@" + user.username)
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding(.vertical, 4)
+                
+                ZStack(alignment: .top) {
+                    // Keşfet alanı (şimdilik boş)
+                    if !isSearching {
+                        VStack {
+                            Spacer()
+                            // Buraya keşfet grid veya içerik gelecek
+                            Spacer()
                         }
                     }
-<<<<<<< Updated upstream
-                    if viewModel.isLoading {
-                        HStack { Spacer(); ProgressView(); Spacer() }
-                    }
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .foregroundColor(.red)
-=======
                     
                     // Overlay: Arama aktifse
                     if isSearching {
@@ -89,18 +66,18 @@ struct ExploreView: View {
                                     ForEach(0..<6) { _ in
                                         HStack(spacing: 12) {
                                             Circle()
-                                                .fill(Color(.systemGray6))
+                                                .fill(Color.white.opacity(0.2))
                                                 .frame(width: 40, height: 40)
-                                                .modernShimmer()
+                                                .shimmer()
                                             VStack(alignment: .leading, spacing: 6) {
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .fill(Color(.systemGray6))
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .fill(Color.white.opacity(0.2))
                                                     .frame(width: 120, height: 16)
-                                                    .subtleShimmer()
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .fill(Color(.systemGray5))
+                                                    .shimmer()
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .fill(Color.white.opacity(0.15))
                                                     .frame(width: 80, height: 12)
-                                                    .subtleShimmer()
+                                                    .shimmer()
                                             }
                                             Spacer()
                                         }
@@ -226,15 +203,12 @@ struct ExploreView: View {
                             }
                         }
                         .zIndex(2)
->>>>>>> Stashed changes
                     }
                 }
-                .listStyle(.plain)
-                .padding(.top, 8)
             }
             .navigationDestination(item: $selectedUserId) { userId in
                 ProfilePage(userId: userId)
             }
         }
     }
-} 
+}
