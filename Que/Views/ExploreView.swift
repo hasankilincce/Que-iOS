@@ -65,24 +65,30 @@ struct ExploreView: View {
                                 VStack(spacing: 0) {
                                     ForEach(0..<6) { _ in
                                         HStack(spacing: 12) {
+                                            // Profile image skeleton - exactly matching real user list
                                             Circle()
-                                                .fill(Color.white.opacity(0.2))
+                                                .fill(Color(.systemGray6))
                                                 .frame(width: 40, height: 40)
                                                 .shimmer()
-                                            VStack(alignment: .leading, spacing: 6) {
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color.white.opacity(0.2))
-                                                    .frame(width: 120, height: 16)
+                                            
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                // Display name skeleton
+                                                RoundedRectangle(cornerRadius: 3)
+                                                    .fill(Color(.systemGray6))
+                                                    .frame(width: 140, height: 16)
                                                     .shimmer()
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color.white.opacity(0.15))
-                                                    .frame(width: 80, height: 12)
+                                                
+                                                // Username skeleton
+                                                RoundedRectangle(cornerRadius: 3)
+                                                    .fill(Color(.systemGray6))
+                                                    .frame(width: 90, height: 14)
                                                     .shimmer()
                                             }
                                             Spacer()
                                         }
                                         .padding(.vertical, 10)
                                         .padding(.horizontal, 16)
+                                        .background(Color(.systemBackground))
                                     }
                                 }
                                 .padding(.top, 8)

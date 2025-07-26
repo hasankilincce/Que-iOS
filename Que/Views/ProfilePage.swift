@@ -191,42 +191,72 @@ struct ProfilePage: View {
 
 struct ProfileSkeletonView: View {
     var body: some View {
-        VStack(spacing: 18) {
-            // Profil fotoğrafı skeleton
+        VStack(spacing: 12) {
+            // Profil fotoğrafı skeleton - exactly matching real size
             Circle()
-                .fill(Color(.systemGray5))
+                .fill(Color(.systemGray6))
                 .frame(width: 96, height: 96)
                 .shimmer()
-            // İsim skeleton
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemGray5))
-                .frame(width: 120, height: 20)
+                .padding(.top, 20)
+            
+            // Display name skeleton - matching font size
+            RoundedRectangle(cornerRadius: 4)
+                .fill(Color(.systemGray6))
+                .frame(width: 150, height: 24)
                 .shimmer()
-            // Takipçi ve takip skeleton
+                .padding(.top, 2)
+            
+            // Takipçi ve takip skeleton - matching real layout
             HStack(spacing: 32) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(.systemGray5))
-                    .frame(width: 40, height: 18)
+                VStack(spacing: 4) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray6))
+                        .frame(width: 35, height: 20)
+                        .shimmer()
+                    
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray6))
+                        .frame(width: 50, height: 12)
+                        .shimmer()
+                }
+                
+                VStack(spacing: 4) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray6))
+                        .frame(width: 35, height: 20)
+                        .shimmer()
+                    
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(.systemGray6))
+                        .frame(width: 60, height: 12)
+                        .shimmer()
+                }
+            }
+            
+            // Follow/Edit button skeleton
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemGray6))
+                .frame(width: 100, height: 32)
+                .shimmer()
+                .padding(.top, 8)
+            
+            // Bio skeleton - multiple lines
+            VStack(alignment: .leading, spacing: 4) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(.systemGray6))
+                    .frame(width: 280, height: 16)
                     .shimmer()
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(.systemGray5))
-                    .frame(width: 40, height: 18)
+                
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(Color(.systemGray6))
+                    .frame(width: 200, height: 16)
                     .shimmer()
             }
-            // Button skeleton
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemGray5))
-                .frame(width: 80, height: 16)
-                .shimmer()
-            // Bio skeleton
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.systemGray5))
-                .frame(width: 180, height: 16)
-                .shimmer()
+            .padding(.top, 8)
             
             Spacer()
         }
-        .padding(.top, 32)
+        .padding(.horizontal, 16)
         .padding(.bottom, 16)
         .frame(maxWidth: .infinity)
     }
