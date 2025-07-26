@@ -52,28 +52,28 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		701206312E350F3F00BCA5A6 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		7012050E2E311FEA00BCA5A6 /* Que.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Que.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7012051E2E311FED00BCA5A6 /* QueTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		701205282E311FED00BCA5A6 /* QueUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QueUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		7012057D2E3138AE00BCA5A6 /* Exceptions for "Que" folder in "Que" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 7012050D2E311FEA00BCA5A6 /* Que */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		701205102E311FEA00BCA5A6 /* Que */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				7012057D2E3138AE00BCA5A6 /* Exceptions for "Que" folder in "Que" target */,
-			);
 			path = Que;
 			sourceTree = "<group>";
 		};
@@ -170,6 +170,7 @@
 				7012050A2E311FEA00BCA5A6 /* Sources */,
 				7012050B2E311FEA00BCA5A6 /* Frameworks */,
 				7012050C2E311FEA00BCA5A6 /* Resources */,
+				701206312E350F3F00BCA5A6 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -497,7 +498,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Que/Info.plist;
+				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -539,7 +540,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Que/Info.plist;
+				INFOPLIST_FILE = "";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
