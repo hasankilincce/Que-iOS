@@ -2,7 +2,9 @@ import Foundation
 import FirebaseFunctions
 import FirebaseAuth
 import FirebaseFirestore
+import SwiftUI
 
+@MainActor
 class RegisterViewModel: ObservableObject {
     @Published var username: String = ""
     @Published var usernameAvailable: Bool? = nil
@@ -32,31 +34,39 @@ class RegisterViewModel: ObservableObject {
         }
         self.usernameValidationMessage = nil
         self.usernameAvailable = nil
-        usernameCheckTask = Task { [weak self] in
+        usernameCheckTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 400_000_000) // debounce
-            do {
-                let result = try await self?.functions.httpsCallable("checkUsernameAvailable").call(["username": username])
-                if let dict = result?.data as? [String: Any], dict["available"] as? Bool == true {
-                    DispatchQueue.main.async {
-                        self?.usernameAvailable = true
-                        self?.usernameValidationMessage = "Kullanıcı adı kullanılabilir."
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        self?.usernameAvailable = false
-                        self?.usernameValidationMessage = "Kullanıcı adı uygun değil."
-                    }
+            
+            guard let self = self else { return }
+            
+            // Firebase Functions call'ını detached task içinde yap ve sadece sendable data döndür
+            let result: Result<[String: Any]?, Error> = await Task.detached {
+                do {
+                    let callResult = try await self.functions.httpsCallable("checkUsernameAvailable").call(["username": username])
+                    return .success(callResult.data as? [String: Any])
+                } catch {
+                    return .failure(error)
                 }
-            } catch let error as NSError {
-                DispatchQueue.main.async {
-                    self?.usernameAvailable = false
-                    if let details = error.userInfo["details"] as? String {
-                        self?.usernameValidationMessage = details
-                    } else if let message = error.userInfo["NSLocalizedDescription"] as? String {
-                        self?.usernameValidationMessage = message
-                    } else {
-                        self?.usernameValidationMessage = error.localizedDescription
-                    }
+            }.value
+            
+            // Sonucu main actor'da işle
+            switch result {
+            case .success(let dict):
+                if let dict = dict, dict["available"] as? Bool == true {
+                    self.usernameAvailable = true
+                    self.usernameValidationMessage = "Kullanıcı adı kullanılabilir."
+                } else {
+                    self.usernameAvailable = false
+                    self.usernameValidationMessage = "Kullanıcı adı uygun değil."
+                }
+            case .failure(let error as NSError):
+                self.usernameAvailable = false
+                if let details = error.userInfo["details"] as? String {
+                    self.usernameValidationMessage = details
+                } else if let message = error.userInfo["NSLocalizedDescription"] as? String {
+                    self.usernameValidationMessage = message
+                } else {
+                    self.usernameValidationMessage = error.localizedDescription
                 }
             }
         }

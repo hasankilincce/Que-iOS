@@ -18,7 +18,7 @@ struct ExploreView: View {
                     })
                     .autocapitalization(.none)
                     .disableAutocorrection(true)
-                    .onChange(of: viewModel.query) { _ in
+                    .onChange(of: viewModel.query) {
                         viewModel.searchUsers()
                     }
                     if isSearching {

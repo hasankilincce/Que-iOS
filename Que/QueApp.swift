@@ -4,17 +4,19 @@ import FirebaseCore
 import FirebaseAppCheck
 import FirebaseAuth
 import FirebaseFirestore
+import UserNotifications
 
 
 class AppState: ObservableObject {
     @Published var isLoggedIn: Bool = false
     @Published var needsOnboarding: Bool = false
+    private var authStateHandle: AuthStateDidChangeListenerHandle?
     
     init() {
         if let user = Auth.auth().currentUser {
             user.reload { [weak self] error in
                 DispatchQueue.main.async {
-                    if let error = error {
+                    if error != nil {
                         try? Auth.auth().signOut()
                         self?.isLoggedIn = false
                         self?.needsOnboarding = false
@@ -28,13 +30,19 @@ class AppState: ObservableObject {
             self.isLoggedIn = false
             self.needsOnboarding = false
         }
-        Auth.auth().addStateDidChangeListener { [weak self] _, user in
+        authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             self?.isLoggedIn = user != nil
             if let user = user {
                 self?.checkOnboarding(for: user.uid)
             } else {
                 self?.needsOnboarding = false
             }
+        }
+    }
+    
+    deinit {
+        if let handle = authStateHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
         }
     }
     
@@ -76,12 +84,26 @@ struct QueApp: App {
     }()
     var body: some Scene {
         WindowGroup {
-            if !appState.isLoggedIn {
-                LoginPage()
-            } else if appState.needsOnboarding {
-                OnboardingProfilePage()
-            } else {
-                HomePage()
+            Group {
+                if !appState.isLoggedIn {
+                    LoginPage()
+                } else if appState.needsOnboarding {
+                    OnboardingProfilePage()
+                } else {
+                    HomePage()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                // Uygulama ön plana geldiğinde badge'i temizle
+                if appState.isLoggedIn {
+                    Task {
+                        do {
+                            try await UNUserNotificationCenter.current().setBadgeCount(0)
+                        } catch {
+                            print("Badge temizlenemedi: \(error)")
+                        }
+                    }
+                }
             }
         }
         .modelContainer(sharedModelContainer)

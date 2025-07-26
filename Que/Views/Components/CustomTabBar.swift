@@ -1,6 +1,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import UserNotifications
 
 // Tab enumu
 enum Tab: Int, CaseIterable {
@@ -8,8 +9,16 @@ enum Tab: Int, CaseIterable {
 }
 
 // Bildirim badge için ViewModel
+@MainActor
 class NotificationBadgeViewModel: ObservableObject {
-    @Published var unreadCount: Int = 0
+    @Published var unreadCount: Int = 0 {
+        didSet {
+            // iOS sistem badge'ini güncelle
+            Task {
+                await setBadgeCount(unreadCount)
+            }
+        }
+    }
     private var listener: ListenerRegistration?
     
     init() {
@@ -27,10 +36,26 @@ class NotificationBadgeViewModel: ObservableObject {
             .collection("notifications")
             .whereField("isRead", isEqualTo: false)
             .addSnapshotListener { [weak self] snapshot, _ in
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self?.unreadCount = snapshot?.documents.count ?? 0
                 }
             }
+    }
+    
+    // Modern badge API kullan
+    private func setBadgeCount(_ count: Int) async {
+        do {
+            try await UNUserNotificationCenter.current().setBadgeCount(count)
+        } catch {
+            print("Badge count ayarlanamadı: \(error)")
+        }
+    }
+    
+    // Manuel olarak badge temizleme
+    func clearBadge() {
+        Task {
+            await setBadgeCount(0)
+        }
     }
 }
 

@@ -4,7 +4,9 @@ import FirebaseFirestore
 import FirebaseStorage
 import UIKit
 import FirebaseFunctions
+import SwiftUI
 
+@MainActor
 class OnboardingProfileViewModel: ObservableObject {
     @Published var username: String = ""
     @Published var displayName: String = ""
@@ -45,30 +47,38 @@ class OnboardingProfileViewModel: ObservableObject {
         }
         self.usernameValidationMessage = nil
         self.usernameAvailable = nil
-        usernameCheckTask = Task { [weak self] in
+        usernameCheckTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 400_000_000) // debounce
-            do {
-                let result = try await self?.functions.httpsCallable("validateAndReserveUsername").call(["username": username])
-                if let dict = result?.data as? [String: Any], dict["available"] as? Bool == true {
-                    DispatchQueue.main.async {
-                        self?.usernameAvailable = true
-                        self?.usernameValidationMessage = "Kullanıcı adı kullanılabilir ve rezerve edildi."
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        self?.usernameAvailable = false
-                        self?.usernameValidationMessage = "Kullanıcı adı uygun değil."
-                    }
+            
+            guard let self = self else { return }
+            
+            // Firebase Functions call'ını detached task içinde yap ve sadece sendable data döndür
+            let result: Result<[String: Any]?, Error> = await Task.detached {
+                do {
+                    let callResult = try await self.functions.httpsCallable("validateAndReserveUsername").call(["username": username])
+                    return .success(callResult.data as? [String: Any])
+                } catch {
+                    return .failure(error)
                 }
-            } catch let error as NSError {
-                DispatchQueue.main.async {
-                    self?.usernameAvailable = false
-                    // Firebase Functions HttpsError'ın message'ı
-                    if let details = error.userInfo["NSLocalizedDescription"] as? String {
-                        self?.usernameValidationMessage = details
-                    } else {
-                        self?.usernameValidationMessage = error.localizedDescription
-                    }
+            }.value
+            
+            // Sonucu main actor'da işle
+            switch result {
+            case .success(let dict):
+                if let dict = dict, dict["available"] as? Bool == true {
+                    self.usernameAvailable = true
+                    self.usernameValidationMessage = "Kullanıcı adı kullanılabilir ve rezerve edildi."
+                } else {
+                    self.usernameAvailable = false
+                    self.usernameValidationMessage = "Kullanıcı adı uygun değil."
+                }
+            case .failure(let error as NSError):
+                self.usernameAvailable = false
+                // Firebase Functions HttpsError'ın message'ı
+                if let details = error.userInfo["NSLocalizedDescription"] as? String {
+                    self.usernameValidationMessage = details
+                } else {
+                    self.usernameValidationMessage = error.localizedDescription
                 }
             }
         }
@@ -87,45 +97,25 @@ class OnboardingProfileViewModel: ObservableObject {
         return true
     }
     
-    @MainActor
-    func saveProfile(completion: (() -> Void)? = nil) async {
-        guard let user = Auth.auth().currentUser else {
-            self.errorMessage = "Kullanıcı oturumu yok."
-            return
-        }
+    func saveProfile(user: User) async {
         isLoading = true
         errorMessage = nil
-        // Profil fotoğrafı yüklemesi (varsa)
-        if let image = localProfileImage {
-            do {
-                let ref = Storage.storage().reference().child("profile_images/\(user.uid).jpg")
-                let data = image.jpegData(compressionQuality: 0.85) ?? Data()
-                _ = try await ref.putDataAsync(data)
-                let url = try await ref.downloadURL()
-                self.photoURL = url.absoluteString
-            } catch {
-                isLoading = false
-                errorMessage = error.localizedDescription
-                return
-            }
-        }
-        // Firestore'a kaydet
+        
         let db = Firestore.firestore()
         let userData: [String: Any] = [
+            "username": username,
             "displayName": displayName,
             "bio": bio,
             "photoURL": photoURL
         ]
-        db.collection("users").document(user.uid).setData(userData, merge: true) { [weak self] err in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                if let err = err {
-                    self?.errorMessage = err.localizedDescription
-                } else {
-                    self?.success = true
-                    completion?()
-                }
-            }
+        
+        do {
+            try await db.collection("users").document(user.uid).setData(userData, merge: true)
+            self.isLoading = false
+            self.success = true
+        } catch {
+            self.isLoading = false
+            self.errorMessage = error.localizedDescription
         }
     }
 } 

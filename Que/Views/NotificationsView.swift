@@ -2,6 +2,7 @@ import SwiftUI
 import SDWebImageSwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import UserNotifications
 
 struct NotificationItem: Identifiable {
     let id: String
@@ -177,6 +178,15 @@ struct NotificationsView: View {
                 ProfilePage(userId: userId)
             }
             .onAppear {
+                // iOS sistem badge'ini hemen temizle
+                Task {
+                    do {
+                        try await UNUserNotificationCenter.current().setBadgeCount(0)
+                    } catch {
+                        print("Badge temizlenemedi: \(error)")
+                    }
+                }
+                
                 // Sayfa açılınca görünen tüm bildirimleri okundu olarak işaretle
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     viewModel.markAllVisibleAsRead()

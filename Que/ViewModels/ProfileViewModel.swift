@@ -1,8 +1,10 @@
 import Foundation
+import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
 import FirebaseFunctions
 
+@MainActor
 class ProfileViewModel: ObservableObject {
     @Published var displayName: String = ""
     @Published var username: String = ""
