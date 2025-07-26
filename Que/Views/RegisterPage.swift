@@ -10,9 +10,7 @@ struct RegisterPage: View {
     @State private var showPassword: Bool = false
     @State private var isLoading: Bool = false
     @State private var errorMessage: String? = nil
-    @FocusState private var focusedField: Field?
-    
-    enum Field { case emailOrPhone, username, password }
+    @FocusState private var focusedField: RegisterField?
     
     var body: some View {
         ZStack {
