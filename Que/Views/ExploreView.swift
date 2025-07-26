@@ -66,16 +66,16 @@ struct ExploreView: View {
                                     ForEach(0..<6) { _ in
                                         HStack(spacing: 12) {
                                             Circle()
-                                                .fill(Color(.systemGray6))
+                                                .fill(Color.white.opacity(0.2))
                                                 .frame(width: 40, height: 40)
                                                 .shimmer()
                                             VStack(alignment: .leading, spacing: 6) {
                                                 RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color(.systemGray6))
+                                                    .fill(Color.white.opacity(0.2))
                                                     .frame(width: 120, height: 16)
                                                     .shimmer()
                                                 RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color(.systemGray5))
+                                                    .fill(Color.white.opacity(0.15))
                                                     .frame(width: 80, height: 12)
                                                     .shimmer()
                                             }
