@@ -88,6 +88,26 @@ struct PostRowView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Post type indicator
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: post.postType.icon)
+                        .foregroundColor(post.postType == .question ? .blue : .green)
+                        .font(.caption)
+                    Text(post.postType.displayName)
+                        .font(.caption.bold())
+                        .foregroundColor(post.postType == .question ? .blue : .green)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    (post.postType == .question ? Color.blue : Color.green).opacity(0.1)
+                )
+                .cornerRadius(12)
+                
+                Spacer()
+            }
+            
             // User header
             HStack {
                 // Profile image
@@ -127,9 +147,36 @@ struct PostRowView: View {
                 .font(.body)
                 .lineLimit(nil)
             
-            // Images (if any)
-            if post.hasImages {
-                PostImagesView(imageURLs: post.imageURLs)
+            // Background image (if any)
+            if post.hasBackgroundImage {
+                BackgroundImageView(imageURL: post.backgroundImageURL!)
+            }
+            
+            // Answer için parent question gösterimi
+            if post.isAnswer, let parentId = post.parentQuestionId {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Bu gönderi bir soruya cevap veriyor:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack {
+                        Image(systemName: "questionmark.circle.fill")
+                            .foregroundColor(.blue)
+                            .font(.caption)
+                        Text("Soru ID: \(parentId)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("Soruyu Gör") {
+                            // TODO: Navigate to parent question
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    }
+                    .padding(8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                }
             }
             
             // Action buttons
@@ -146,11 +193,26 @@ struct PostRowView: View {
                 
                 Button(action: {}) {
                     HStack(spacing: 4) {
-                        Image(systemName: "message")
+                        Image(systemName: post.isQuestion ? "message.badge" : "message")
                             .foregroundColor(.gray)
                         Text("\(post.commentsCount)")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                    }
+                }
+                
+                // Question için "Cevapla" butonu
+                if post.isQuestion {
+                    Button(action: {
+                        // TODO: Open answer creation for this question
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.message")
+                                .foregroundColor(.blue)
+                            Text("Cevapla")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
                     }
                 }
                 
@@ -164,44 +226,26 @@ struct PostRowView: View {
     }
 }
 
-struct PostImagesView: View {
-    let imageURLs: [String]
+// Background image view for 9:16 aspect ratio images (vertical)
+struct BackgroundImageView: View {
+    let imageURL: String
     
     var body: some View {
-        if imageURLs.count == 1 {
-            // Single image
-            if let url = URL(string: imageURLs[0]) {
-                WebImage(url: url)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: 300)
+        if let url = URL(string: imageURL) {
+            WebImage(url: url)
+                .resizable()
+                .scaledToFill()
+                .frame(height: 320) // Fixed height for 9:16 viewing (vertical)
+                .clipped()
+                .cornerRadius(12)
+                .overlay(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color.clear, Color.black.opacity(0.1)]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                     .cornerRadius(12)
-            }
-        } else {
-            // Multiple images grid
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 2), spacing: 4) {
-                ForEach(Array(imageURLs.prefix(4).enumerated()), id: \.offset) { index, imageURL in
-                    if let url = URL(string: imageURL) {
-                        WebImage(url: url)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 150)
-                            .clipped()
-                            .cornerRadius(8)
-                            .overlay {
-                                if index == 3 && imageURLs.count > 4 {
-                                    ZStack {
-                                        Color.black.opacity(0.6)
-                                        Text("+\(imageURLs.count - 4)")
-                                            .foregroundColor(.white)
-                                            .font(.headline.bold())
-                                    }
-                                    .cornerRadius(8)
-                                }
-                            }
-                    }
-                }
-            }
+                )
         }
     }
 }

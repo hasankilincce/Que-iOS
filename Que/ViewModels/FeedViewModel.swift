@@ -25,7 +25,7 @@ class FeedViewModel: ObservableObject {
     
     // Ana feed'i yükle (realtime)
     func loadFeed() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+        guard (Auth.auth().currentUser?.uid) != nil else { return }
         
         isLoading = true
         errorMessage = nil
@@ -105,7 +105,7 @@ class FeedViewModel: ObservableObject {
     
     // Post'u beğen/beğenme
     func toggleLike(for post: Post) {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+        guard (Auth.auth().currentUser?.uid) != nil else { return }
         
         // Optimistic update
         if let index = posts.firstIndex(where: { $0.id == post.id }) {

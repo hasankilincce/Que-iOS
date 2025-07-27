@@ -8,7 +8,7 @@ struct HomePage: View {
             Group {
                 switch viewModel.selectedTab {
                 case .home:
-                    FeedView(viewModel: viewModel.feedViewModel)
+                    FullScreenFeedView(viewModel: viewModel.feedViewModel)
                 case .explore:
                     ExploreView(viewModel: viewModel.exploreViewModel, selectedUserId: $viewModel.selectedUserId, isSearching: $viewModel.isExploreSearching)
                 case .add:
