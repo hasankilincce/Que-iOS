@@ -65,7 +65,8 @@ struct QueApp: App {
     @StateObject private var appState = AppState()
     init() {
         #if DEBUG
-        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+        // Development ortamında App Check'i devre dışı bırak
+        // AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
         #else
         AppCheck.setAppCheckProviderFactory(DeviceCheckProviderFactory())
         #endif

@@ -2,7 +2,6 @@ import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
 import FirebaseStorage
-import PhotosUI
 
 @MainActor
 class AddPostViewModel: ObservableObject {
@@ -12,13 +11,10 @@ class AddPostViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     @Published var successMessage: String? = nil
-    @Published var showImagePicker: Bool = false
-    @Published var showCamera: Bool = false
     
     // Answer için parent question seçimi
     @Published var selectedParentQuestion: Post? = nil
     @Published var availableQuestions: [Post] = []
-    @Published var isLoadingQuestions: Bool = false
     
     private let maxContentLength = 280
     
@@ -58,14 +54,12 @@ class AddPostViewModel: ObservableObject {
     
     // Answer için mevcut soruları yükle
     func loadAvailableQuestions() async {
-        isLoadingQuestions = true
-        
         do {
             let querySnapshot = try await Firestore.firestore()
                 .collection("posts")
                 .whereField("postType", isEqualTo: "question")
                 .order(by: "createdAt", descending: true)
-                .limit(to: 50) // Son 50 soruyu getir
+                .limit(to: 50)
                 .getDocuments()
             
             availableQuestions = querySnapshot.documents.compactMap { doc in
@@ -74,14 +68,11 @@ class AddPostViewModel: ObservableObject {
         } catch {
             errorMessage = "Sorular yüklenirken hata oluştu: \(error.localizedDescription)"
         }
-        
-        isLoadingQuestions = false
     }
     
     // Arkaplan fotoğrafı ekleme
     func setBackgroundImage(_ image: UIImage) {
-        // 9:16 aspect ratio'ya göre resize et (dikey format)
-        backgroundImage = resizeImageToAspectRatio(image, aspectRatio: 9.0/16.0)
+        backgroundImage = image
     }
     
     // Arkaplan fotoğrafını kaldır
@@ -89,12 +80,16 @@ class AddPostViewModel: ObservableObject {
         backgroundImage = nil
     }
     
-    // Parent question seç
-    func selectParentQuestion(_ question: Post) {
-        selectedParentQuestion = question
+    // Formu temizle
+    func clearForm() {
+        content = ""
+        backgroundImage = nil
+        selectedParentQuestion = nil
+        errorMessage = nil
+        successMessage = nil
     }
     
-    // Gönderi oluştur
+    // Post oluştur
     func createPost() async {
         guard canPost else { return }
         guard let user = Auth.auth().currentUser else {
@@ -148,80 +143,54 @@ class AddPostViewModel: ObservableObject {
                 postData["parentQuestionId"] = parentQuestion.id
             }
             
-            try await Firestore.firestore()
+            let docRef = try await Firestore.firestore()
                 .collection("posts")
                 .addDocument(data: postData)
             
-            // Success - reset form
+            successMessage = "Gönderi başarıyla oluşturuldu!"
             clearForm()
-            successMessage = selectedPostType == .question ? "Sorunuz başarıyla paylaşıldı!" : "Cevabınız başarıyla paylaşıldı!"
             
         } catch {
-            errorMessage = error.localizedDescription
+            if let postError = error as? PostError {
+                errorMessage = postError.localizedDescription
+            } else {
+                errorMessage = "Gönderi oluşturulurken hata oluştu: \(error.localizedDescription)"
+            }
         }
         
         isLoading = false
     }
     
-    // Private helper: Arkaplan fotoğrafı yükleme
+    // Arkaplan fotoğrafını Firebase Storage'a yükle
     private func uploadBackgroundImage(_ image: UIImage) async throws -> String {
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            throw PostError.imageProcessingFailed
+            throw PostError.imageCompressionFailed
         }
         
-        let fileName = "\(UUID().uuidString)_background.jpg"
-        let storageRef = Storage.storage().reference()
-            .child("background_images")
-            .child(fileName)
+        let filename = "\(UUID().uuidString).jpg"
+        let storageRef = Storage.storage().reference().child("post_images/\(filename)")
         
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
         
-        let _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
+        _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
         let downloadURL = try await storageRef.downloadURL()
         
         return downloadURL.absoluteString
     }
-    
-    // Helper: Image'ı belirli aspect ratio'ya resize et
-    private func resizeImageToAspectRatio(_ image: UIImage, aspectRatio: CGFloat) -> UIImage {
-        let targetSize = CGSize(width: 720, height: 720 / aspectRatio) // 9:16 için 720x1280
-        
-        UIGraphicsBeginImageContextWithOptions(targetSize, false, 0.0)
-        image.draw(in: CGRect(origin: .zero, size: targetSize))
-        let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        
-        return resizedImage ?? image
-    }
-    
-    // Form temizle
-    func clearForm() {
-        content = ""
-        backgroundImage = nil
-        selectedParentQuestion = nil
-        errorMessage = nil
-        successMessage = nil
-    }
 }
 
-// Error enum
+// MARK: - Post Error
 enum PostError: LocalizedError {
     case userDataNotFound
-    case imageProcessingFailed
-    case uploadFailed
-    case parentQuestionRequired
+    case imageCompressionFailed
     
     var errorDescription: String? {
         switch self {
         case .userDataNotFound:
-            return "Kullanıcı bilgileri alınamadı."
-        case .imageProcessingFailed:
-            return "Fotoğraf işlenirken hata oluştu."
-        case .uploadFailed:
-            return "Fotoğraf yüklenirken hata oluştu."
-        case .parentQuestionRequired:
-            return "Cevap vermek için bir soru seçmelisiniz."
+            return "Kullanıcı bilgileri bulunamadı."
+        case .imageCompressionFailed:
+            return "Fotoğraf sıkıştırılamadı."
         }
     }
 } 

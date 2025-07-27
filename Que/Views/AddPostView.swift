@@ -1,507 +1,288 @@
 import SwiftUI
+import AVFoundation
 import PhotosUI
-import TOCropViewController
 
 struct AddPostView: View {
     @ObservedObject var viewModel: AddPostViewModel
     @Environment(\.dismiss) private var dismiss
     
+    // Camera states
+    @State private var cameraSession: AVCaptureSession?
+    @State private var cameraPosition: AVCaptureDevice.Position = .front
+    @State private var cameraPermissionGranted = false
+    @State private var showingPermissionAlert = false
+    @State private var cameraSessionReady = false
+    
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    postTypeSelectorView
-                    parentQuestionSelectorView
-                    contentInputView
-                    backgroundImageView
-                    messageViews
-                    Spacer()
-                }
-                .padding()
-            }
-            .navigationTitle("Yeni Gönderi")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("İptal") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Paylaş") {
-                        Task {
-                            await viewModel.createPost()
-                            if viewModel.successMessage != nil {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                                    dismiss()
-                                }
-                            }
-                        }
-                    }
-                    .disabled(!viewModel.canPost)
-                    .foregroundColor(viewModel.canPost ? .purple : .gray)
-                }
-            }
-            .sheet(isPresented: $viewModel.showImagePicker) {
-                BackgroundImagePicker { image in
-                    viewModel.setBackgroundImage(image)
-                }
-            }
-            .sheet(isPresented: $viewModel.showCamera) {
-                CameraView { image in
-                    viewModel.setBackgroundImage(image)
-                }
-            }
-            .overlay {
-                if viewModel.isLoading {
-                    loadingOverlay
-                }
-            }
-        }
-    }
-    
-    // MARK: - View Components
-    
-    @ViewBuilder
-    private var postTypeSelectorView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Gönderi Tipi")
-                .font(.headline)
-            
-            HStack(spacing: 12) {
-                ForEach(PostType.allCases, id: \.self) { type in
-                    Button(action: {
-                        viewModel.changePostType(to: type)
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: type.icon)
-                            Text(type.displayName)
-                        }
-                        .foregroundColor(viewModel.selectedPostType == type ? .white : .purple)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(
-                            viewModel.selectedPostType == type ? 
-                            Color.purple : Color.purple.opacity(0.1)
-                        )
-                        .cornerRadius(20)
-                    }
-                }
-                Spacer()
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var parentQuestionSelectorView: some View {
-        if viewModel.selectedPostType == .answer {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Hangi Soruya Cevap Veriyorsunuz?")
-                    .font(.headline)
-                
-                if viewModel.isLoadingQuestions {
-                    HStack {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Sorular yükleniyor...")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                } else if viewModel.availableQuestions.isEmpty {
-                    emptyQuestionsView
+        GeometryReader { geometry in
+            ZStack {
+                // Live camera background
+                if cameraPermissionGranted && cameraSessionReady {
+                    LiveCameraView(session: cameraSession)
+                        .ignoresSafeArea()
                 } else {
-                    questionsScrollView
-                }
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var emptyQuestionsView: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "questionmark.circle")
-                .font(.largeTitle)
-                .foregroundColor(.secondary)
-            Text("Henüz cevaplanabilir soru bulunmuyor")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Button("Soruları Yenile") {
-                Task {
-                    await viewModel.loadAvailableQuestions()
-                }
-            }
-            .font(.caption)
-            .foregroundColor(.purple)
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    @ViewBuilder
-    private var questionsScrollView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(viewModel.availableQuestions) { question in
-                    QuestionCard(
-                        question: question,
-                        isSelected: viewModel.selectedParentQuestion?.id == question.id
-                    ) {
-                        viewModel.selectParentQuestion(question)
-                    }
-                }
-            }
-            .padding(.horizontal)
-        }
-        .frame(height: 120)
-    }
-    
-    @ViewBuilder
-    private var contentInputView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(viewModel.selectedPostType == .question ? "Sorunuz nedir?" : "Cevabınız nedir?")
-                    .font(.headline)
-                Spacer()
-                Text("\(viewModel.remainingCharacters)")
-                    .font(.caption)
-                    .foregroundColor(viewModel.remainingCharacters < 0 ? .red : .secondary)
-            }
-            
-            TextEditor(text: $viewModel.content)
-                .frame(minHeight: 120)
-                .padding(12)
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(viewModel.remainingCharacters < 0 ? Color.red : Color.clear, lineWidth: 1)
-                )
-        }
-    }
-    
-    @ViewBuilder
-    private var backgroundImageView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Arkaplan Fotoğrafı (9:16)")
-                .font(.headline)
-            
-            if let backgroundImage = viewModel.backgroundImage {
-                selectedImageView(backgroundImage)
-            } else {
-                imageSelectionView
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func selectedImageView(_ image: UIImage) -> some View {
-        ZStack(alignment: .topTrailing) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(height: 320) // 9:16 dikey format için daha yüksek
-                .clipped()
-                .cornerRadius(12)
-            
-            Button(action: {
-                viewModel.removeBackgroundImage()
-            }) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.white)
-                    .background(Color.black.opacity(0.6))
-                    .clipShape(Circle())
-            }
-            .padding(8)
-        }
-    }
-    
-    @ViewBuilder
-    private var imageSelectionView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "photo.badge.plus")
-                .font(.system(size: 40))
-                .foregroundColor(.secondary)
-            
-            Text("9:16 oranında arkaplan fotoğrafı ekleyin")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            
-            HStack(spacing: 16) {
-                Button(action: {
-                    viewModel.showImagePicker = true
-                }) {
-                    HStack {
-                        Image(systemName: "photo")
-                        Text("Galeri")
-                    }
-                    .foregroundColor(.purple)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.purple.opacity(0.1))
-                    .cornerRadius(20)
+                    Color.black
+                        .ignoresSafeArea()
                 }
                 
-                Button(action: {
-                    viewModel.showCamera = true
-                }) {
+                // Camera overlay UI
+                VStack {
+                    // Top bar
                     HStack {
-                        Image(systemName: "camera")
-                        Text("Kamera")
+                        Button("İptal") {
+                            dismiss()
+                        }
+                        .foregroundColor(.white)
+                        .font(.system(size: 18, weight: .medium))
+                        
+                        Spacer()
+                        
+                        // Post type selector will be added here
+                        Text("Soru")
+                            .foregroundColor(.white)
+                            .font(.system(size: 18, weight: .semibold))
+                        
+                        Spacer()
+                        
+                        Button("Ayarlar") {
+                            // Camera settings will be added here
+                        }
+                        .foregroundColor(.white)
+                        .font(.system(size: 18, weight: .medium))
                     }
-                    .foregroundColor(.purple)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.purple.opacity(0.1))
-                    .cornerRadius(20)
-                }
-            }
-        }
-        .frame(height: 320)
-        .frame(maxWidth: .infinity)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(.systemGray4), lineWidth: 1)
-        )
-    }
-    
-    @ViewBuilder
-    private var messageViews: some View {
-        VStack(spacing: 12) {
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .foregroundColor(.red)
-                    .padding()
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
-            }
-            
-            if let success = viewModel.successMessage {
-                Text(success)
-                    .foregroundColor(.green)
-                    .padding()
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(8)
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var loadingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.3)
-                .ignoresSafeArea()
-            
-            VStack(spacing: 16) {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(1.2)
-                
-                Text("Gönderi paylaşılıyor...")
-                    .foregroundColor(.white)
-                    .font(.subheadline)
-            }
-            .padding(24)
-            .background(Color.black.opacity(0.8))
-            .cornerRadius(16)
-        }
-    }
-}
-
-// Question card component for parent selection
-struct QuestionCard: View {
-    let question: Post
-    let isSelected: Bool
-    let onTap: () -> Void
-    
-    var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("@\(question.username)")
-                        .font(.caption.bold())
-                        .foregroundColor(.purple)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    
                     Spacer()
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(isSelected ? .green : .secondary)
+                    
+                    // Bottom controls
+                    HStack {
+                        Spacer()
+                        
+                        // Gallery button
+                        Button(action: {
+                            // Gallery picker will be added here
+                        }) {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 60, height: 60)
+                                .overlay(
+                                    Image(systemName: "photo.on.rectangle")
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 24))
+                                )
+                        }
+                        
+                        Spacer()
+                        
+                        // Capture button
+                        Button(action: {
+                            // Photo capture will be added here
+                        }) {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 80, height: 80)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.3), lineWidth: 4)
+                                        .frame(width: 90, height: 90)
+                                )
+                        }
+                        
+                        Spacer()
+                        
+                        // Camera switch button
+                        Button(action: {
+                            switchCamera()
+                        }) {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 60, height: 60)
+                                .overlay(
+                                    Image(systemName: "camera.rotate")
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 24))
+                                )
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.bottom, 50)
+                }
+            }
+        }
+        .onAppear {
+            checkCameraPermission()
+        }
+        .alert("Kamera İzni Gerekli", isPresented: $showingPermissionAlert) {
+            Button("Ayarlar") {
+                if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsUrl)
+                }
+            }
+            Button("İptal", role: .cancel) { }
+        } message: {
+            Text("Kamera erişimi için ayarlardan izin vermeniz gerekiyor.")
+        }
+    }
+    
+    // MARK: - Camera Functions
+    
+    private func checkCameraPermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            cameraPermissionGranted = true
+            setupCamera()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async {
+                    cameraPermissionGranted = granted
+                    if granted {
+                        setupCamera()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            cameraPermissionGranted = false
+            showingPermissionAlert = true
+        @unknown default:
+            cameraPermissionGranted = false
+        }
+    }
+    
+    private func setupCamera() {
+        print("Setting up camera...")
+        DispatchQueue.global(qos: .userInitiated).async {
+            let session = AVCaptureSession()
+            session.sessionPreset = .photo
+            
+            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraPosition) else { 
+                print("Camera device not found")
+                return 
+            }
+            
+            print("Camera device found: \(device)")
+            
+            do {
+                let input = try AVCaptureDeviceInput(device: device)
+                if session.canAddInput(input) {
+                    session.addInput(input)
+                    print("Camera input added successfully")
                 }
                 
-                Text(question.content)
-                    .font(.caption)
-                    .foregroundColor(.primary)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
+                let photoOutput = AVCapturePhotoOutput()
+                if session.canAddOutput(photoOutput) {
+                    session.addOutput(photoOutput)
+                    print("Photo output added successfully")
+                }
                 
-                Spacer()
+                session.startRunning()
+                print("Camera session started running")
+                
+                DispatchQueue.main.async {
+                    self.cameraSession = session
+                    self.cameraSessionReady = true
+                    print("Camera session assigned to UI and ready")
+                }
+                
+            } catch {
+                print("Camera setup error: \(error)")
             }
-            .padding(12)
-            .frame(width: 200, height: 100)
-            .background(
-                isSelected ? Color.green.opacity(0.1) : Color(.systemGray6)
-            )
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.green : Color.clear, lineWidth: 2)
-            )
         }
+    }
+    
+    private func switchCamera() {
+        guard let session = cameraSession else { return }
+        
+        session.beginConfiguration()
+        
+        // Remove existing input
+        if let existingInput = session.inputs.first {
+            session.removeInput(existingInput)
+        }
+        
+        // Switch camera position
+        cameraPosition = cameraPosition == .back ? .front : .back
+        
+        // Add new input
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraPosition) else { return }
+        
+        do {
+            let input = try AVCaptureDeviceInput(device: device)
+            if session.canAddInput(input) {
+                session.addInput(input)
+            }
+        } catch {
+            print("Camera switch error: \(error)")
+        }
+        
+        session.commitConfiguration()
     }
 }
 
-// Background image picker with cropping functionality
-struct BackgroundImagePicker: UIViewControllerRepresentable {
-    let onImageSelected: (UIImage) -> Void
-    @Environment(\.dismiss) private var dismiss
+// MARK: - Live Camera View
+struct LiveCameraView: UIViewRepresentable {
+    let session: AVCaptureSession?
     
-    func makeUIViewController(context: Context) -> PHPickerViewController {
-        var config = PHPickerConfiguration()
-        config.filter = .images
-        config.selectionLimit = 1
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .black
         
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = context.coordinator
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, PHPickerViewControllerDelegate, TOCropViewControllerDelegate {
-        let parent: BackgroundImagePicker
-        
-        init(_ parent: BackgroundImagePicker) {
-            self.parent = parent
+        guard let session = session else { 
+            print("LiveCameraView: No session provided")
+            return view 
         }
         
-        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            if let result = results.first {
-                if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
-                    result.itemProvider.loadObject(ofClass: UIImage.self) { image, _ in
-                        if let image = image as? UIImage {
-                            DispatchQueue.main.async {
-                                self.showCropViewController(with: image, from: picker)
+        print("LiveCameraView: Creating preview layer with session")
+        
+        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+        previewLayer.videoGravity = .resizeAspectFill
+        previewLayer.frame = view.bounds
+        
+        view.layer.addSublayer(previewLayer)
+        
+        print("LiveCameraView created with session: \(session)")
+        print("Preview layer added to view with frame: \(previewLayer.frame)")
+        
+        // View'ın layout'u değiştiğinde preview layer'ı güncelle
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+        
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            // Tüm sublayer'ları kontrol et
+            for sublayer in uiView.layer.sublayers ?? [] {
+                if let previewLayer = sublayer as? AVCaptureVideoPreviewLayer {
+                    let newFrame = uiView.bounds
+                    print("Preview layer frame check: \(newFrame)")
+                    
+                    if newFrame.width > 0 && newFrame.height > 0 {
+                        if previewLayer.frame != newFrame {
+                            previewLayer.frame = newFrame
+                            print("Preview layer frame updated: \(newFrame)")
+                        }
+                    } else {
+                        print("View bounds are zero, waiting for layout...")
+                        // Layout completion'ı bekleyelim
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            let updatedFrame = uiView.bounds
+                            if updatedFrame.width > 0 && updatedFrame.height > 0 {
+                                previewLayer.frame = updatedFrame
+                                print("Preview layer frame set after delay: \(previewLayer.frame)")
                             }
                         }
                     }
+                    return
                 }
-            } else {
-                parent.dismiss()
             }
-        }
-        
-        private func showCropViewController(with image: UIImage, from presentingController: UIViewController) {
-            let cropViewController = TOCropViewController(croppingStyle: .default, image: image)
-            cropViewController.delegate = self
-            
-            // 9:16 aspect ratio için ayarlama
-            cropViewController.aspectRatioPreset = .presetCustom
-            cropViewController.customAspectRatio = CGSize(width: 9, height: 16)
-            cropViewController.aspectRatioLockEnabled = true
-            cropViewController.resetAspectRatioEnabled = false
-            cropViewController.aspectRatioPickerButtonHidden = true
-            
-            // Crop view styling
-            cropViewController.title = "Fotoğrafı Kırp"
-            cropViewController.doneButtonTitle = "Tamam"
-            cropViewController.cancelButtonTitle = "İptal"
-            
-            presentingController.present(cropViewController, animated: true)
-        }
-        
-        // MARK: - TOCropViewControllerDelegate
-        
-        func cropViewController(_ cropViewController: TOCropViewController, didCropTo image: UIImage, with cropRect: CGRect, angle: Int) {
-            parent.onImageSelected(image)
-            cropViewController.dismiss(animated: true) {
-                self.parent.dismiss()
-            }
-        }
-        
-        func cropViewController(_ cropViewController: TOCropViewController, didFinishCancelled cancelled: Bool) {
-            cropViewController.dismiss(animated: true) {
-                self.parent.dismiss()
-            }
+            print("LiveCameraView: No preview layer found in updateUIView")
         }
     }
 }
 
-// Camera wrapper with cropping functionality
-struct CameraView: UIViewControllerRepresentable {
-    let onImageCaptured: (UIImage) -> Void
-    @Environment(\.dismiss) private var dismiss
-    
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = context.coordinator
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate, TOCropViewControllerDelegate {
-        let parent: CameraView
-        
-        init(_ parent: CameraView) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                showCropViewController(with: image, from: picker)
-            } else {
-                parent.dismiss()
-            }
-        }
-        
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.dismiss()
-        }
-        
-        private func showCropViewController(with image: UIImage, from presentingController: UIViewController) {
-            let cropViewController = TOCropViewController(croppingStyle: .default, image: image)
-            cropViewController.delegate = self
-            
-            // 9:16 aspect ratio için ayarlama
-            cropViewController.aspectRatioPreset = .presetCustom
-            cropViewController.customAspectRatio = CGSize(width: 9, height: 16)
-            cropViewController.aspectRatioLockEnabled = true
-            cropViewController.resetAspectRatioEnabled = false
-            cropViewController.aspectRatioPickerButtonHidden = true
-            
-            // Crop view styling
-            cropViewController.title = "Fotoğrafı Kırp"
-            cropViewController.doneButtonTitle = "Tamam"
-            cropViewController.cancelButtonTitle = "İptal"
-            
-            presentingController.present(cropViewController, animated: true)
-        }
-        
-        // MARK: - TOCropViewControllerDelegate
-        
-        func cropViewController(_ cropViewController: TOCropViewController, didCropTo image: UIImage, with cropRect: CGRect, angle: Int) {
-            parent.onImageCaptured(image)
-            cropViewController.dismiss(animated: true) {
-                self.parent.dismiss()
-            }
-        }
-        
-        func cropViewController(_ cropViewController: TOCropViewController, didFinishCancelled cancelled: Bool) {
-            cropViewController.dismiss(animated: true) {
-                self.parent.dismiss()
-            }
-        }
-    }
+#Preview {
+    AddPostView(viewModel: AddPostViewModel())
 } 

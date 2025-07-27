@@ -48,9 +48,22 @@ class FeedViewModel: ObservableObject {
                 
                 guard let documents = snapshot?.documents else { return }
                 
-                self.posts = documents.compactMap { doc in
+                let loadedPosts = documents.compactMap { doc in
                     Post(id: doc.documentID, data: doc.data())
                 }
+                
+                // Duplicate post'ları filtrele
+                var uniquePosts: [Post] = []
+                var seenIds = Set<String>()
+                
+                for post in loadedPosts {
+                    if !seenIds.contains(post.id) {
+                        uniquePosts.append(post)
+                        seenIds.insert(post.id)
+                    }
+                }
+                
+                self.posts = uniquePosts
                 
                 self.lastDocument = documents.last
                 self.hasMorePosts = documents.count == self.postsPerPage
@@ -97,7 +110,11 @@ class FeedViewModel: ObservableObject {
                     Post(id: doc.documentID, data: doc.data())
                 }
                 
-                self.posts.append(contentsOf: newPosts)
+                // Duplicate post'ları filtrele
+                let existingIds = Set(self.posts.map { $0.id })
+                let uniqueNewPosts = newPosts.filter { !existingIds.contains($0.id) }
+                
+                self.posts.append(contentsOf: uniqueNewPosts)
                 self.lastDocument = documents.last
                 self.hasMorePosts = documents.count == self.postsPerPage
             }

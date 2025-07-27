@@ -19,5 +19,15 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	
+	<!-- Privacy Usage Descriptions for Camera and Photo Library -->
+	<key>NSCameraUsageDescription</key>
+	<string>Que, gönderi oluştururken fotoğraf çekmenize olanak tanımak için kameranıza erişim isteği gönderiyor.</string>
+	
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Que, gönderi oluştururken mevcut fotoğraflarınızı seçmenize olanak tanımak için fotoğraf kütüphanenize erişim isteği gönderiyor.</string>
+	
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Que, düzenlediğiniz fotoğrafları kaydetmenize olanak tanımak için fotoğraf kütüphanenize ekleme yetkisi istiyor.</string>
 </dict>
 </plist>

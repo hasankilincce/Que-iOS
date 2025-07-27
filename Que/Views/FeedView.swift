@@ -231,12 +231,12 @@ struct BackgroundImageView: View {
     let imageURL: String
     
     var body: some View {
-        if let url = URL(string: imageURL) {
-            WebImage(url: url)
-                .resizable()
-                .scaledToFill()
+                    if let url = URL(string: imageURL) {
+                        WebImage(url: url)
+                            .resizable()
+                            .scaledToFill()
                 .frame(height: 320) // Fixed height for 9:16 viewing (vertical)
-                .clipped()
+                            .clipped()
                 .cornerRadius(12)
                 .overlay(
                     LinearGradient(

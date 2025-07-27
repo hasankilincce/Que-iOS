@@ -47,7 +47,7 @@ struct FullScreenFeedView: View {
                 } else {
                     // TikTok-style vertical scroll system
                     ZStack {
-                        ForEach(Array(viewModel.posts.enumerated()), id: \.element.id) { index, post in
+                        ForEach(Array(viewModel.posts.enumerated()), id: \.offset) { index, post in
                             TikTokStylePostView(
                                 post: post,
                                 screenSize: geometry.size,
@@ -360,16 +360,66 @@ struct TikTokStyleContentOverlay: View {
                         // Enhanced text content with better typography
                         if !post.content.isEmpty {
                             Text(post.content)
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(.system(size: 24, weight: .medium, design: .rounded))
                                 .foregroundColor(.white)
                                 .lineLimit(4)
                                 .multilineTextAlignment(.leading)
                                 .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
                                 .padding(.horizontal, 4)
                         }
+                        
+                        // Question/Answer specific buttons in text area
+                        HStack(spacing: 12) {
+                            // Cevapla button for questions
+                            if post.postType == .question {
+                                Button(action: {}) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "plus.message")
+                                            .font(.caption.weight(.bold))
+                                        Text("Cevapla")
+                                            .font(.caption.weight(.bold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule()
+                                            .fill(LinearGradient(colors: [.green, .teal], 
+                                                               startPoint: .leading, endPoint: .trailing))
+                                    )
+                                    .shadow(color: .green.opacity(0.4), radius: 4, x: 0, y: 2)
+                                }
+                            }
+                            
+                            // Cevapları gör button for questions with answers
+                            if post.postType == .question && post.commentsCount > 0 {
+                                Button(action: {}) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "bubble.left.and.bubble.right")
+                                            .font(.caption.weight(.bold))
+                                        Text("\(post.commentsCount) Cevap")
+                                            .font(.caption.weight(.bold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule()
+                                            .fill(.ultraThinMaterial)
+                                            .overlay(
+                                                Capsule()
+                                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                                            )
+                                    )
+                                    .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
+                                }
+                            }
+                            
+                            Spacer()
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.trailing, 80) // Space for right buttons
+                    .padding(.trailing, 20) // Space for right buttons
                     
                     Spacer()
                 }
@@ -446,19 +496,19 @@ struct TikTokStyleContentOverlay: View {
                     Spacer()
                 }
                 
-                // Right side - Action buttons with enhanced TikTok-style design & better spacing
-                VStack(spacing: 20) { // Reduced spacing for better fit
-                    // Like button with enhanced animation
+                // Right side - Action buttons (moved closer to right edge)
+                VStack(spacing: 18) { // Slightly tighter spacing for 4 buttons
+                    // Like button
                     VStack(spacing: 4) {
                         Button(action: onLike) {
                             ZStack {
                                 Circle()
                                     .fill(.ultraThinMaterial)
-                                    .frame(width: 60, height: 60) // Slightly larger for better touch
+                                    .frame(width: 58, height: 58)
                                     .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
                                 
                                 Image(systemName: post.isLiked ? "heart.fill" : "heart")
-                                    .font(.system(size: 30, weight: .bold))
+                                    .font(.system(size: 28, weight: .bold))
                                     .foregroundColor(post.isLiked ? .red : .white)
                                     .scaleEffect(post.isLiked ? 1.1 : 1.0)
                                     .animation(.spring(response: 0.3, dampingFraction: 0.5), value: post.isLiked)
@@ -471,17 +521,38 @@ struct TikTokStyleContentOverlay: View {
                             .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
                     }
                     
+                    // Dislike button
+                    VStack(spacing: 4) {
+                        Button(action: {}) {
+                            ZStack {
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                    .frame(width: 58, height: 58)
+                                    .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
+                                
+                                Image(systemName: "hand.thumbsdown")
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        
+                        Text("—")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white.opacity(0.7))
+                            .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
+                    }
+                    
                     // Comment button
                     VStack(spacing: 4) {
                         Button(action: {}) {
                             ZStack {
                                 Circle()
                                     .fill(.ultraThinMaterial)
-                                    .frame(width: 60, height: 60)
+                                    .frame(width: 58, height: 58)
                                     .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
                                 
                                 Image(systemName: "message")
-                                    .font(.system(size: 28, weight: .bold))
+                                    .font(.system(size: 26, weight: .bold))
                                     .foregroundColor(.white)
                             }
                         }
@@ -498,11 +569,11 @@ struct TikTokStyleContentOverlay: View {
                             ZStack {
                                 Circle()
                                     .fill(.ultraThinMaterial)
-                                    .frame(width: 60, height: 60)
+                                    .frame(width: 58, height: 58)
                                     .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
                                 
                                 Image(systemName: "arrowshape.turn.up.right")
-                                    .font(.system(size: 26, weight: .bold))
+                                    .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(.white)
                             }
                         }
@@ -512,34 +583,8 @@ struct TikTokStyleContentOverlay: View {
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
                     }
-                    
-                    // Answer button for questions with enhanced design
-                    if post.postType == .question {
-                        VStack(spacing: 4) {
-                            Button(action: {}) {
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(colors: [.green, .teal], 
-                                                         startPoint: .topLeading, endPoint: .bottomTrailing)
-                                        )
-                                        .frame(width: 60, height: 60)
-                                        .shadow(color: .green.opacity(0.5), radius: 8, x: 0, y: 4)
-                                    
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 30, weight: .bold))
-                                        .foregroundColor(.white)
-                                }
-                            }
-                            
-                            Text("Cevapla")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                                .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
-                        }
-                    }
                 }
-                .padding(.trailing, 12) // Better right spacing
+                //.padding(.trailing, 8) // Much closer to right edge
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 120) // Optimal spacing for CustomTabBar (62px) + safe area (34px) + extra comfort (24px)
@@ -569,8 +614,3 @@ struct TikTokStyleContentOverlay: View {
         }
     }
 }
-
-// MARK: - Preview
-#Preview {
-    FullScreenFeedView(viewModel: FeedViewModel())
-} 
