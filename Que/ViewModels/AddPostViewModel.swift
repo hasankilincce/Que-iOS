@@ -2,12 +2,14 @@ import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
 import FirebaseStorage
+import AVFoundation
 
 @MainActor
 class AddPostViewModel: ObservableObject {
     @Published var content: String = ""
     @Published var selectedPostType: PostType = .question
     @Published var backgroundImage: UIImage? = nil
+    @Published var backgroundVideo: URL? = nil
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     @Published var successMessage: String? = nil
@@ -73,17 +75,26 @@ class AddPostViewModel: ObservableObject {
     // Arkaplan fotoğrafı ekleme
     func setBackgroundImage(_ image: UIImage) {
         backgroundImage = image
+        backgroundVideo = nil // Fotoğraf seçildiğinde video'yu temizle
     }
     
-    // Arkaplan fotoğrafını kaldır
-    func removeBackgroundImage() {
+    // Arkaplan video'su ekleme
+    func setBackgroundVideo(_ videoURL: URL) {
+        backgroundVideo = videoURL
+        backgroundImage = nil // Video seçildiğinde fotoğrafı temizle
+    }
+    
+    // Arkaplan medyasını kaldır
+    func removeBackgroundMedia() {
         backgroundImage = nil
+        backgroundVideo = nil
     }
     
     // Formu temizle
     func clearForm() {
         content = ""
         backgroundImage = nil
+        backgroundVideo = nil
         selectedParentQuestion = nil
         errorMessage = nil
         successMessage = nil
@@ -114,10 +125,14 @@ class AddPostViewModel: ObservableObject {
                 throw PostError.userDataNotFound
             }
             
-            // Arkaplan fotoğrafını yükle (varsa)
+            // Arkaplan medyasını yükle (varsa)
             var backgroundImageURL: String? = nil
+            var backgroundVideoURL: String? = nil
+            
             if let image = backgroundImage {
                 backgroundImageURL = try await uploadBackgroundImage(image)
+            } else if let videoURL = backgroundVideo {
+                backgroundVideoURL = try await uploadBackgroundVideo(videoURL)
             }
             
             // Post'u Firestore'a kaydet
@@ -133,9 +148,12 @@ class AddPostViewModel: ObservableObject {
                 "createdAt": FieldValue.serverTimestamp()
             ]
             
-            // Arkaplan fotoğrafı varsa ekle
+            // Arkaplan medyası varsa ekle
             if let backgroundImageURL = backgroundImageURL {
                 postData["backgroundImageURL"] = backgroundImageURL
+            }
+            if let backgroundVideoURL = backgroundVideoURL {
+                postData["backgroundVideoURL"] = backgroundVideoURL
             }
             
             // Answer ise parent question ID'sini ekle
@@ -178,12 +196,27 @@ class AddPostViewModel: ObservableObject {
         
         return downloadURL.absoluteString
     }
+    
+    // Arkaplan video'sunu Firebase Storage'a yükle
+    private func uploadBackgroundVideo(_ videoURL: URL) async throws -> String {
+        let filename = "\(UUID().uuidString).mov"
+        let storageRef = Storage.storage().reference().child("post_videos/\(filename)")
+        
+        let metadata = StorageMetadata()
+        metadata.contentType = "video/quicktime"
+        
+        _ = try await storageRef.putFileAsync(from: videoURL, metadata: metadata)
+        let downloadURL = try await storageRef.downloadURL()
+        
+        return downloadURL.absoluteString
+    }
 }
 
 // MARK: - Post Error
 enum PostError: LocalizedError {
     case userDataNotFound
     case imageCompressionFailed
+    case videoUploadFailed
     
     var errorDescription: String? {
         switch self {
@@ -191,6 +224,8 @@ enum PostError: LocalizedError {
             return "Kullanıcı bilgileri bulunamadı."
         case .imageCompressionFailed:
             return "Fotoğraf sıkıştırılamadı."
+        case .videoUploadFailed:
+            return "Video yüklenemedi."
         }
     }
 } 

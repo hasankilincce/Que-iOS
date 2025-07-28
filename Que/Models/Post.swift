@@ -38,6 +38,9 @@ struct Post: Identifiable, Codable {
     // Question ve Answer'lar için tek arkaplan fotoğrafı
     let backgroundImageURL: String?
     
+    // Video desteği ekliyoruz
+    let backgroundVideoURL: String?
+    
     // Answer postları için parent question ID'si
     let parentQuestionId: String?
     
@@ -50,6 +53,14 @@ struct Post: Identifiable, Codable {
     // Computed properties
     var hasBackgroundImage: Bool {
         backgroundImageURL != nil && !backgroundImageURL!.isEmpty
+    }
+    
+    var hasBackgroundVideo: Bool {
+        backgroundVideoURL != nil && !backgroundVideoURL!.isEmpty
+    }
+    
+    var hasBackgroundMedia: Bool {
+        hasBackgroundImage || hasBackgroundVideo
     }
     
     var isQuestion: Bool {
@@ -85,6 +96,7 @@ struct Post: Identifiable, Codable {
         }
         
         self.backgroundImageURL = data["backgroundImageURL"] as? String
+        self.backgroundVideoURL = data["backgroundVideoURL"] as? String
         self.parentQuestionId = data["parentQuestionId"] as? String
         
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
@@ -95,7 +107,7 @@ struct Post: Identifiable, Codable {
     }
     
     // Manual initializer
-    init(id: String, userId: String, username: String, displayName: String, userPhotoURL: String?, content: String, postType: PostType, backgroundImageURL: String? = nil, parentQuestionId: String? = nil, createdAt: Date = Date(), likesCount: Int = 0, commentsCount: Int = 0, isLiked: Bool = false, isBookmarked: Bool = false) {
+    init(id: String, userId: String, username: String, displayName: String, userPhotoURL: String?, content: String, postType: PostType, backgroundImageURL: String? = nil, backgroundVideoURL: String? = nil, parentQuestionId: String? = nil, createdAt: Date = Date(), likesCount: Int = 0, commentsCount: Int = 0, isLiked: Bool = false, isBookmarked: Bool = false) {
         self.id = id
         self.userId = userId
         self.username = username
@@ -104,6 +116,7 @@ struct Post: Identifiable, Codable {
         self.content = content
         self.postType = postType
         self.backgroundImageURL = backgroundImageURL
+        self.backgroundVideoURL = backgroundVideoURL
         self.parentQuestionId = parentQuestionId
         self.createdAt = createdAt
         self.likesCount = likesCount

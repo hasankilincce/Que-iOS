@@ -12,7 +12,9 @@ struct HomePage: View {
                 case .explore:
                     ExploreView(viewModel: viewModel.exploreViewModel, selectedUserId: $viewModel.selectedUserId, isSearching: $viewModel.isExploreSearching)
                 case .add:
-                    AddPostView(viewModel: viewModel.addPostViewModel)
+                    NavigationStack {
+                        AddPostView(viewModel: viewModel.addPostViewModel, homeViewModel: viewModel)
+                    }
                 case .notifications:
                     NotificationsView()
                 case .profile:
@@ -39,7 +41,7 @@ struct ProfileTabNavigation: View {
     @Binding var isProfileRoot: Bool
     var body: some View {
         NavigationStack {
-            ProfilePage(isProfileRoot: $isProfileRoot)
+            ProfilePage(userId: nil, isProfileRoot: $isProfileRoot)
         }
     }
 }

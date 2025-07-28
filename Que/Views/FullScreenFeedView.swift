@@ -497,18 +497,18 @@ struct TikTokStyleContentOverlay: View {
                 }
                 
                 // Right side - Action buttons (moved closer to right edge)
-                VStack(spacing: 18) { // Slightly tighter spacing for 4 buttons
+                VStack(spacing: 12) { // Slightly tighter spacing for 4 buttons
                     // Like button
-                    VStack(spacing: 4) {
+                    VStack(spacing: 2) {
                         Button(action: onLike) {
                             ZStack {
-                                Circle()
+                                /*Circle()
                                     .fill(.ultraThinMaterial)
-                                    .frame(width: 58, height: 58)
+                                    .frame(width: 32, height: 32)
                                     .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
-                                
+                                */
                                 Image(systemName: post.isLiked ? "heart.fill" : "heart")
-                                    .font(.system(size: 28, weight: .bold))
+                                    .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(post.isLiked ? .red : .white)
                                     .scaleEffect(post.isLiked ? 1.1 : 1.0)
                                     .animation(.spring(response: 0.3, dampingFraction: 0.5), value: post.isLiked)
@@ -522,16 +522,16 @@ struct TikTokStyleContentOverlay: View {
                     }
                     
                     // Dislike button
-                    VStack(spacing: 4) {
+                    VStack(spacing: 2) {
                         Button(action: {}) {
                             ZStack {
-                                Circle()
+                                /*Circle()
                                     .fill(.ultraThinMaterial)
                                     .frame(width: 58, height: 58)
                                     .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
-                                
+                                */
                                 Image(systemName: "hand.thumbsdown")
-                                    .font(.system(size: 26, weight: .bold))
+                                    .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(.white)
                             }
                         }
@@ -543,16 +543,16 @@ struct TikTokStyleContentOverlay: View {
                     }
                     
                     // Comment button
-                    VStack(spacing: 4) {
+                    VStack(spacing: 2) {
                         Button(action: {}) {
                             ZStack {
-                                Circle()
+                                /*Circle()
                                     .fill(.ultraThinMaterial)
                                     .frame(width: 58, height: 58)
                                     .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
-                                
+                                */
                                 Image(systemName: "message")
-                                    .font(.system(size: 26, weight: .bold))
+                                    .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(.white)
                             }
                         }
@@ -564,16 +564,16 @@ struct TikTokStyleContentOverlay: View {
                     }
                     
                     // Share button
-                    VStack(spacing: 4) {
+                    VStack(spacing: 2) {
                         Button(action: {}) {
                             ZStack {
-                                Circle()
+                                /*Circle()
                                     .fill(.ultraThinMaterial)
                                     .frame(width: 58, height: 58)
                                     .shadow(color: .black.opacity(0.3), radius: 6, x: 0, y: 3)
-                                
+                                */
                                 Image(systemName: "arrowshape.turn.up.right")
-                                    .font(.system(size: 24, weight: .bold))
+                                    .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(.white)
                             }
                         }
