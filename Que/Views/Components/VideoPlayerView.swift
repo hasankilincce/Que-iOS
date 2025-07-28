@@ -47,6 +47,9 @@ struct VideoPlayerView: View {
     }
     
     private func setupPlayer() {
+        // Audio session'ı video oynatma için hazırla
+        AudioSessionManager.shared.prepareAudioSessionForVideo()
+        
         player = AVPlayer(url: videoURL)
         
         // Video loop için

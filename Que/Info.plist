@@ -29,5 +29,16 @@
 	
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Que, düzenlediğiniz fotoğrafları kaydetmenize olanak tanımak için fotoğraf kütüphanenize ekleme yetkisi istiyor.</string>
+	
+	<!-- Audio Session Configuration -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>audio</string>
+	</array>
+	
+	<!-- Audio Session Category -->
+	<key>AVAudioSessionCategory</key>
+	<string>AVAudioSessionCategoryPlayback</string>
 </dict>
 </plist>

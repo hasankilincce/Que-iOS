@@ -71,6 +71,9 @@ struct QueApp: App {
         AppCheck.setAppCheckProviderFactory(DeviceCheckProviderFactory())
         #endif
         FirebaseApp.configure()
+        
+        // Audio session'ı uygulama başlangıcında yapılandır
+        AudioSessionManager.shared.configureAudioSessionForVideoPlayback()
     }
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([

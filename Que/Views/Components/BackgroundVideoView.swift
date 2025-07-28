@@ -89,6 +89,9 @@ struct BackgroundVideoView: View {
             return
         }
         
+        // Audio session'ı video oynatma için hazırla
+        AudioSessionManager.shared.prepareAudioSessionForVideo()
+        
         let playerItem = AVPlayerItem(url: url)
         player = AVPlayer(playerItem: playerItem)
         

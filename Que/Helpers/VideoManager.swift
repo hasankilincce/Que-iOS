@@ -8,6 +8,7 @@ class VideoManager: ObservableObject {
     @Published var currentPlayingVideoId: String?
     private var players: [String: AVPlayer] = [:]
     private var cancellables = Set<AnyCancellable>()
+    private let audioSessionManager = AudioSessionManager.shared
     
     private init() {}
     
@@ -18,19 +19,23 @@ class VideoManager: ObservableObject {
             pauseVideo(id: currentId)
         }
         
+        // Audio session'ı video oynatma için hazırla
+        audioSessionManager.prepareAudioSessionForVideo()
+        
         // Yeni videoyu oynat
         currentPlayingVideoId = id
         players[id] = player
         player.play()
         
-        print("🎬 VideoManager: Playing video with ID: \(id)")
+        DebugLogger.logVideo("Playing video with ID: \(id)")
+        DebugLogger.logAudio("Video should play with sound even in silent mode")
     }
     
     // Video oynatmayı durdur
     func pauseVideo(id: String) {
         if let player = players[id] {
             player.pause()
-            print("⏸️ VideoManager: Paused video with ID: \(id)")
+            DebugLogger.logVideo("Paused video with ID: \(id)")
         }
         
         if currentPlayingVideoId == id {
@@ -42,16 +47,25 @@ class VideoManager: ObservableObject {
     func removeVideo(id: String) {
         pauseVideo(id: id)
         players.removeValue(forKey: id)
-        print("🗑️ VideoManager: Removed video with ID: \(id)")
+        
+        // Eğer hiç video oynatılmıyorsa audio session'ı temizle
+        if players.isEmpty {
+            audioSessionManager.cleanupAudioSession()
+        }
+        
+        DebugLogger.logVideo("Removed video with ID: \(id)")
     }
     
     // Tüm videoları durdur
     func pauseAllVideos() {
         for (id, player) in players {
             player.pause()
-            print("⏸️ VideoManager: Paused all videos, including: \(id)")
+            DebugLogger.logVideo("Paused all videos, including: \(id)")
         }
         currentPlayingVideoId = nil
+        
+        // Audio session'ı temizle
+        audioSessionManager.cleanupAudioSession()
     }
     
     // Video'nun oynatılıp oynatılmadığını kontrol et
