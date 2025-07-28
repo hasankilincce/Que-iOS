@@ -36,7 +36,9 @@ class MediaCaptureManager: ObservableObject {
         print("Photo output available codecs: \(photoOutput.availablePhotoCodecTypes)")
         
         let settings = AVCapturePhotoSettings()
-        settings.flashMode = .auto
+        
+        // Flaş ayarları - tüm kameralar için kullanıcının seçtiği modu kullan
+        settings.flashMode = cameraManager.flashMode
         
         // 9:16 format için özel ayarlar
         if let photoOutputConnection = photoOutput.connection(with: .video) {

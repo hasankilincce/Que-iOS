@@ -7,9 +7,17 @@ class CameraManager: ObservableObject {
     @Published var cameraPermissionGranted = false
     @Published var cameraSessionReady = false
     @Published var showingPermissionAlert = false
+    @Published var flashMode: AVCaptureDevice.FlashMode = .off
+    
+    private let userDefaults = UserDefaults.standard
+    private let flashModeKey = "CameraFlashMode"
     
     private var photoOutput: AVCapturePhotoOutput?
     private var movieOutput: AVCaptureMovieFileOutput?
+    
+    init() {
+        loadFlashMode()
+    }
     
     func checkCameraPermission() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -135,5 +143,70 @@ class CameraManager: ObservableObject {
     
     func getMovieOutput() -> AVCaptureMovieFileOutput? {
         return movieOutput
+    }
+    
+    // Flaş modunu değiştir
+    func toggleFlashMode() {
+        switch flashMode {
+        case .off:
+            flashMode = .on
+        case .on:
+            flashMode = .off
+        @unknown default:
+            flashMode = .off
+        }
+        saveFlashMode()
+        print("Flash mode changed to: \(flashMode)")
+    }
+    
+    // Flaş modunu UserDefaults'a kaydet
+    private func saveFlashMode() {
+        let flashModeValue: Int
+        switch flashMode {
+        case .off:
+            flashModeValue = 0
+        case .on:
+            flashModeValue = 1
+        @unknown default:
+            flashModeValue = 0
+        }
+        userDefaults.set(flashModeValue, forKey: flashModeKey)
+    }
+    
+    // Flaş modunu UserDefaults'tan yükle
+    private func loadFlashMode() {
+        let flashModeValue = userDefaults.integer(forKey: flashModeKey)
+        switch flashModeValue {
+        case 0:
+            flashMode = .off
+        case 1:
+            flashMode = .on
+        default:
+            flashMode = .off // Varsayılan değer
+        }
+    }
+    
+    // Flaş modu için icon adı
+    var flashModeIcon: String {
+        switch flashMode {
+        case .off:
+            return "bolt.slash"
+        case .on:
+            return "bolt.fill"
+        @unknown default:
+            return "bolt.slash"
+        }
+    }
+    
+    // Flaş modu için açıklama
+    var flashModeDescription: String {
+        switch flashMode {
+        case .off:
+            return "Flaş Kapalı"
+        case .on:
+            return "Flaş Açık"
+        @unknown default:
+            return "Flaş Kapalı"
+        }
     }
 } 

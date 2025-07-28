@@ -4,57 +4,101 @@ struct CameraOverlayView: View {
     @ObservedObject var cameraManager: CameraManager
     @ObservedObject var mediaCaptureManager: MediaCaptureManager
     @ObservedObject var homeViewModel: HomeViewModel
-    
+    @State private var showSettingsMenu = false
+
     let onCancel: () -> Void
     let onUseCapturedMedia: () -> Void
     let onCapturePhoto: () -> Void
     let onStartVideoRecording: () -> Void
     let onStopVideoRecording: () -> Void
     let onSwitchCamera: () -> Void
-    
+
     var body: some View {
         VStack {
-            // Top bar
-            HStack {
-                Button("İptal") {
-                    if mediaCaptureManager.showingCapturedMedia {
-                        // Return to camera
-                        mediaCaptureManager.clearCapturedMedia()
-                    } else {
-                        onCancel()
+            // Top bar + settings button & menu
+            ZStack(alignment: .topTrailing) {
+                // 1) İptal–Soru bar’ı
+                HStack {
+                    Button("İptal") {
+                        if mediaCaptureManager.showingCapturedMedia {
+                            mediaCaptureManager.clearCapturedMedia()
+                        } else {
+                            onCancel()
+                        }
                     }
-                }
-                .foregroundColor(.white)
-                .font(.system(size: 18, weight: .medium))
-                
-                Spacer()
-                
-                Text("Soru")
                     .foregroundColor(.white)
-                    .font(.system(size: 18, weight: .semibold))
-                
-                Spacer()
-                
-                Button("Ayarlar") {
-                    // Camera settings will be added here
+                    .font(.system(size: 18, weight: .medium))
+
+                    Spacer()
+
+                    Text("Soru")
+                        .foregroundColor(.white)
+                        .font(.system(size: 18, weight: .semibold))
+
+                    Spacer()
+
+                    // Sağda yer tutucu (44×44)
+                    Color.clear
+                        .frame(width: 44, height: 44)
                 }
-                .foregroundColor(.white)
-                .font(.system(size: 18, weight: .medium))
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+
+                // 2) Açılır ayar menüsü
+                if showSettingsMenu {
+                    VStack(spacing: 8) {
+                        Button(action: {
+                            cameraManager.toggleFlashMode()
+                        }) {
+                            ZStack() {
+                                Image(systemName: cameraManager.flashModeIcon)
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 20, weight: .medium))
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.black.opacity(0.6))
+                                    .clipShape(Circle())
+                            }
+                        }
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.top, 60)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                // 3) Ayar ikonu
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showSettingsMenu.toggle()
+                    }
+                }) {
+                    Image(systemName: "gearshape.fill")
+                        .foregroundColor(.white)
+                        .font(.system(size: 20, weight: .medium))
+                        .frame(width: 44, height: 44)
+                        .background(Color.black.opacity(0.3))
+                        .clipShape(Circle())
+                }
+                .padding(.trailing, 20)
+                .padding(.top, 10)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            
+
             Spacer()
-            
-            // Recording indicator
+
+            // Kayıt göstergesi
             if mediaCaptureManager.isRecording {
                 HStack {
                     Circle()
                         .fill(Color.red)
                         .frame(width: 12, height: 12)
-                        .scaleEffect(mediaCaptureManager.recordingDuration.truncatingRemainder(dividingBy: 1) < 0.5 ? 1.0 : 0.7)
-                        .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: mediaCaptureManager.recordingDuration)
-                    
+                        .scaleEffect(
+                            mediaCaptureManager.recordingDuration.truncatingRemainder(dividingBy: 1) < 0.5
+                                ? 1.0 : 0.7
+                        )
+                        .animation(
+                            .easeInOut(duration: 0.5).repeatForever(autoreverses: true),
+                            value: mediaCaptureManager.recordingDuration
+                        )
+
                     Text(String(format: "%.1f", mediaCaptureManager.recordingDuration))
                         .foregroundColor(.white)
                         .font(.system(size: 16, weight: .medium))
@@ -64,14 +108,14 @@ struct CameraOverlayView: View {
                 .background(Color.black.opacity(0.6))
                 .cornerRadius(20)
             }
-            
-            // Bottom controls
+
+            // Alt kontroller
             HStack {
                 Spacer()
-                
-                // Gallery button
+
+                // Galeri butonu
                 Button(action: {
-                    // Gallery picker will be added here
+                    // Galeri seçici
                 }) {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color.white.opacity(0.2))
@@ -82,10 +126,10 @@ struct CameraOverlayView: View {
                                 .font(.system(size: 24))
                         )
                 }
-                
+
                 Spacer()
-                
-                // Capture button with long press gesture
+
+                // Fotoğraf/Kayıt butonu
                 Button(action: {
                     if mediaCaptureManager.showingCapturedMedia {
                         onUseCapturedMedia()
@@ -99,10 +143,15 @@ struct CameraOverlayView: View {
                             .frame(width: 80, height: 80)
                             .overlay(
                                 Circle()
-                                    .stroke(mediaCaptureManager.isRecording ? Color.red.opacity(0.3) : Color.white.opacity(0.3), lineWidth: 4)
+                                    .stroke(
+                                        mediaCaptureManager.isRecording
+                                            ? Color.red.opacity(0.3)
+                                            : Color.white.opacity(0.3),
+                                        lineWidth: 4
+                                    )
                                     .frame(width: 90, height: 90)
                             )
-                        
+
                         if mediaCaptureManager.isRecording {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(Color.white)
@@ -127,10 +176,10 @@ struct CameraOverlayView: View {
                             }
                         }
                 )
-                
+
                 Spacer()
-                
-                // Camera switch button
+
+                // Kamera değiştir butonu
                 Button(action: {
                     if !mediaCaptureManager.showingCapturedMedia {
                         onSwitchCamera()
@@ -146,10 +195,10 @@ struct CameraOverlayView: View {
                         )
                 }
                 .disabled(mediaCaptureManager.showingCapturedMedia)
-                
+
                 Spacer()
             }
             .padding(.bottom, 50)
         }
     }
-} 
+}
