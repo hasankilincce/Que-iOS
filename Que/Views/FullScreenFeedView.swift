@@ -497,7 +497,7 @@ struct TikTokStyleContentOverlay: View {
                 }
                 
                 // Right side - Action buttons (moved closer to right edge)
-                VStack(spacing: 12) { // Slightly tighter spacing for 4 buttons
+                VStack(spacing: 18) { // Slightly tighter spacing for 4 buttons
                     // Like button
                     VStack(spacing: 2) {
                         Button(action: onLike) {

@@ -26,14 +26,34 @@ struct AddPostView: View {
     @State private var capturedVideoURL: URL?
     @State private var showingCapturedMedia = false
     
+    // Post creation states
+    @State private var showingPostCreation = false
+    @State private var postContent = ""
+    @State private var selectedPostType: PostType = .question
+    @State private var selectedParentQuestion: Post? = nil
+    
     // Delegate retention
     @State private var photoCaptureDelegate: PhotoCaptureDelegate?
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background - either live camera or captured media
-                if showingCapturedMedia {
+                // Background - either live camera, captured media, or post creation
+                if showingPostCreation {
+                    // Post creation background
+                    if let image = capturedImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .clipped()
+                            .ignoresSafeArea()
+                    } else if let videoURL = capturedVideoURL {
+                        // Video background for post creation
+                        Color.black
+                            .ignoresSafeArea()
+                    }
+                } else if showingCapturedMedia {
                     if let image = capturedImage {
                         Image(uiImage: image)
                             .resizable()
@@ -198,6 +218,23 @@ struct AddPostView: View {
                     }
                     .padding(.bottom, 50)
                 }
+                
+                // Post creation form overlay
+                if showingPostCreation {
+                    PostCreationForm(
+                        postContent: $postContent,
+                        selectedPostType: $selectedPostType,
+                        selectedParentQuestion: $selectedParentQuestion,
+                        onCancel: {
+                            showingPostCreation = false
+                            capturedImage = nil
+                            capturedVideoURL = nil
+                        },
+                        onPost: {
+                            createPost()
+                        }
+                    )
+                }
             }
         }
         .onAppear {
@@ -212,6 +249,28 @@ struct AddPostView: View {
             Button("İptal", role: .cancel) { }
         } message: {
             Text("Kamera erişimi için ayarlardan izin vermeniz gerekiyor.")
+        }
+    }
+    
+    // MARK: - Post Creation Functions
+    
+    private func createPost() {
+        viewModel.content = postContent
+        viewModel.selectedPostType = selectedPostType
+        viewModel.selectedParentQuestion = selectedParentQuestion
+        
+        Task {
+            await viewModel.createPost()
+            
+            DispatchQueue.main.async {
+                showingPostCreation = false
+                capturedImage = nil
+                capturedVideoURL = nil
+                postContent = ""
+                selectedPostType = .question
+                selectedParentQuestion = nil
+                homeViewModel.selectTab(.home)
+            }
         }
     }
     
@@ -405,13 +464,11 @@ struct AddPostView: View {
         if let image = capturedImage {
             viewModel.setBackgroundImage(image)
             print("Photo saved to viewModel")
-            // Navigate to post creation or show success message
-            homeViewModel.selectTab(.home)
+            showingPostCreation = true
         } else if let videoURL = capturedVideoURL {
             viewModel.setBackgroundVideo(videoURL)
             print("Video saved to viewModel")
-            // Navigate to post creation or show success message
-            homeViewModel.selectTab(.home)
+            showingPostCreation = true
         }
     }
     
@@ -589,6 +646,180 @@ struct LiveCameraView: UIViewRepresentable {
                 }
             }
             print("LiveCameraView: No preview layer found in updateUIView")
+        }
+    }
+}
+
+// MARK: - Post Creation Form
+struct PostCreationForm: View {
+    @Binding var postContent: String
+    @Binding var selectedPostType: PostType
+    @Binding var selectedParentQuestion: Post?
+    let onCancel: () -> Void
+    let onPost: () -> Void
+    
+    @State private var availableQuestions: [Post] = []
+    @State private var isLoadingQuestions = false
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Top bar
+            HStack {
+                Button("İptal") {
+                    onCancel()
+                }
+                .foregroundColor(.white)
+                .font(.system(size: 18, weight: .medium))
+                
+                Spacer()
+                
+                Text("Gönderi Oluştur")
+                    .foregroundColor(.white)
+                    .font(.system(size: 18, weight: .semibold))
+                
+                Spacer()
+                
+                Button("Paylaş") {
+                    onPost()
+                }
+                .foregroundColor(.white)
+                .font(.system(size: 18, weight: .semibold))
+                .disabled(postContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 20)
+            
+            // Content area
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Post type selector
+                    HStack {
+                        Text("Gönderi Türü")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .medium))
+                        
+                        Spacer()
+                        
+                        Picker("Gönderi Türü", selection: $selectedPostType) {
+                            Text("Soru").tag(PostType.question)
+                            Text("Cevap").tag(PostType.answer)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .frame(width: 150)
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Parent question selector (for answers)
+                    if selectedPostType == .answer {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Hangi Soruya Cevap Veriyorsunuz?")
+                                .foregroundColor(.white)
+                                .font(.system(size: 16, weight: .medium))
+                            
+                            if let selectedQuestion = selectedParentQuestion {
+                                HStack {
+                                    Text(selectedQuestion.content)
+                                        .foregroundColor(.white)
+                                        .lineLimit(2)
+                                    
+                                    Spacer()
+                                    
+                                    Button("Değiştir") {
+                                        selectedParentQuestion = nil
+                                    }
+                                    .foregroundColor(.blue)
+                                }
+                                .padding()
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(8)
+                            } else {
+                                Button("Soru Seç") {
+                                    loadAvailableQuestions()
+                                }
+                                .foregroundColor(.blue)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                    
+                    // Content text field
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("İçerik")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .medium))
+                        
+                        TextField("Gönderinizi yazın...", text: $postContent, axis: .vertical)
+                            .textFieldStyle(PlainTextFieldStyle())
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(8)
+                            .lineLimit(5...10)
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .padding(.vertical, 20)
+            }
+        }
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [Color.black.opacity(0.7), Color.black.opacity(0.5)]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .sheet(isPresented: $isLoadingQuestions) {
+            QuestionSelectionView(
+                questions: availableQuestions,
+                selectedQuestion: $selectedParentQuestion
+            )
+        }
+    }
+    
+    private func loadAvailableQuestions() {
+        // TODO: Load available questions from Firestore
+        isLoadingQuestions = true
+    }
+}
+
+// MARK: - Question Selection View
+struct QuestionSelectionView: View {
+    let questions: [Post]
+    @Binding var selectedQuestion: Post?
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List(questions) { question in
+                Button(action: {
+                    selectedQuestion = question
+                    dismiss()
+                }) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(question.content)
+                            .foregroundColor(.primary)
+                            .lineLimit(3)
+                        
+                        Text("@\(question.username)")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                }
+            }
+            .navigationTitle("Soru Seç")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("İptal") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }
