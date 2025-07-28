@@ -44,8 +44,8 @@ struct CameraOverlayView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
 
-                // 2) Açılır ayar menüsü
-                if showSettingsMenu {
+                // 2) Açılır ayar menüsü (sadece kamera modunda)
+                if showSettingsMenu && !mediaCaptureManager.showingCapturedMedia {
                     VStack(spacing: 8) {
                         Button(action: {
                             cameraManager.toggleFlashMode()
@@ -65,21 +65,23 @@ struct CameraOverlayView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
-                // 3) Ayar ikonu
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        showSettingsMenu.toggle()
+                // 3) Ayar ikonu (sadece kamera modunda)
+                if !mediaCaptureManager.showingCapturedMedia {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showSettingsMenu.toggle()
+                        }
+                    }) {
+                        Image(systemName: "gearshape.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 20, weight: .medium))
+                            .frame(width: 44, height: 44)
+                            .background(Color.black.opacity(0.3))
+                            .clipShape(Circle())
                     }
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .foregroundColor(.white)
-                        .font(.system(size: 20, weight: .medium))
-                        .frame(width: 44, height: 44)
-                        .background(Color.black.opacity(0.3))
-                        .clipShape(Circle())
+                    .padding(.trailing, 20)
+                            .padding(.top, 10)
                 }
-                .padding(.trailing, 20)
-                .padding(.top, 10)
             }
 
             Spacer()
@@ -113,18 +115,20 @@ struct CameraOverlayView: View {
             HStack {
                 Spacer()
 
-                // Galeri butonu
-                Button(action: {
-                    // Galeri seçici
-                }) {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white.opacity(0.2))
-                        .frame(width: 60, height: 60)
-                        .overlay(
-                            Image(systemName: "photo.on.rectangle")
-                                .foregroundColor(.white)
-                                .font(.system(size: 24))
-                        )
+                // Galeri butonu (sadece kamera modunda)
+                if !mediaCaptureManager.showingCapturedMedia {
+                    Button(action: {
+                        // Galeri seçici
+                    }) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 60, height: 60)
+                            .overlay(
+                                Image(systemName: "photo.on.rectangle")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 24))
+                            )
+                    }
                 }
 
                 Spacer()
@@ -179,22 +183,21 @@ struct CameraOverlayView: View {
 
                 Spacer()
 
-                // Kamera değiştir butonu
-                Button(action: {
-                    if !mediaCaptureManager.showingCapturedMedia {
+                // Kamera değiştir butonu (sadece kamera modunda)
+                if !mediaCaptureManager.showingCapturedMedia {
+                    Button(action: {
                         onSwitchCamera()
+                    }) {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 60, height: 60)
+                            .overlay(
+                                Image(systemName: "camera.rotate")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 24))
+                            )
                     }
-                }) {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white.opacity(0.2))
-                        .frame(width: 60, height: 60)
-                        .overlay(
-                            Image(systemName: "camera.rotate")
-                                .foregroundColor(.white)
-                                .font(.system(size: 24))
-                        )
                 }
-                .disabled(mediaCaptureManager.showingCapturedMedia)
 
                 Spacer()
             }
