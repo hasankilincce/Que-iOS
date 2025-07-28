@@ -1,11 +1,13 @@
 import SwiftUI
+import PhotosUI
 
 struct CameraOverlayView: View {
     @ObservedObject var cameraManager: CameraManager
     @ObservedObject var mediaCaptureManager: MediaCaptureManager
     @ObservedObject var homeViewModel: HomeViewModel
     @State private var showSettingsMenu = false
-
+    @State private var showImagePicker = false
+    
     let onCancel: () -> Void
     let onUseCapturedMedia: () -> Void
     let onCapturePhoto: () -> Void
@@ -118,7 +120,7 @@ struct CameraOverlayView: View {
                 // Galeri butonu (sadece kamera modunda)
                 if !mediaCaptureManager.showingCapturedMedia {
                     Button(action: {
-                        // Galeri seçici
+                        showImagePicker = true
                     }) {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(Color.white.opacity(0.2))
@@ -202,6 +204,14 @@ struct CameraOverlayView: View {
                 Spacer()
             }
             .padding(.bottom, 50)
+        }
+        .fullScreenCover(isPresented: $showImagePicker) {
+            UIKitImagePicker(image: $mediaCaptureManager.capturedImage, isPresented: $showImagePicker)
+                .onDisappear {
+                    if mediaCaptureManager.capturedImage != nil {
+                        mediaCaptureManager.showingCapturedMedia = true
+                    }
+                }
         }
     }
 }

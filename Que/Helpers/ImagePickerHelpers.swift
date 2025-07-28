@@ -15,8 +15,10 @@ struct UIKitImagePicker: UIViewControllerRepresentable {
         init(_ parent: UIKitImagePicker) { self.parent = parent }
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let uiImage = info[.originalImage] as? UIImage {
+                // Orientation'ı düzelt
+                let correctedImage = uiImage.fixOrientation()
                 // Fotoğrafı sıkıştır
-                let compressedImage = uiImage.compressedForUpload() ?? uiImage
+                let compressedImage = correctedImage.compressedForUpload() ?? correctedImage
                 parent.image = compressedImage
             }
             parent.isPresented = false
@@ -50,8 +52,10 @@ struct UIKitCropImagePicker: UIViewControllerRepresentable {
         init(_ parent: UIKitCropImagePicker) { self.parent = parent }
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let uiImage = info[.originalImage] as? UIImage {
+                // Orientation'ı düzelt
+                let correctedImage = uiImage.fixOrientation()
                 // Fotoğrafı sıkıştır
-                let compressedImage = uiImage.compressedForUpload() ?? uiImage
+                let compressedImage = correctedImage.compressedForUpload() ?? correctedImage
                 pickedImage = compressedImage
                 let cropVC = TOCropViewController(croppingStyle: .circular, image: compressedImage)
                 cropVC.delegate = self
@@ -94,6 +98,22 @@ extension UIImage {
         let newImage = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return newImage ?? self
+    }
+    
+    /// Fotoğraf orientation'ını düzelt
+    func fixOrientation() -> UIImage {
+        // Eğer orientation zaten doğruysa, değiştirme
+        if self.imageOrientation == .up {
+            return self
+        }
+        
+        // Yeni bir context oluştur
+        UIGraphicsBeginImageContextWithOptions(self.size, false, self.scale)
+        self.draw(in: CGRect(origin: .zero, size: self.size))
+        let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return normalizedImage ?? self
     }
     
     /// Fotoğraf seçimi sonrası otomatik sıkıştırma
