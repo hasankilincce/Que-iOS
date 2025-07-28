@@ -19,6 +19,9 @@ struct LiveCameraView: UIViewRepresentable {
         previewLayer.videoGravity = .resizeAspectFill
         previewLayer.frame = view.bounds
         
+        // 9:16 aspect ratio için özel ayarlar
+        previewLayer.videoGravity = .resizeAspectFill
+        
         // 9:16 format için özel ayarlar
         previewLayer.videoGravity = .resizeAspectFill
         

@@ -16,37 +16,43 @@ struct AddPostView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // Ensure full screen coverage
+                Color.black
+                    .ignoresSafeArea(.all, edges: .all)
                 // Background - either live camera, captured media, or post creation
                 if showingPostCreation {
                     // Post creation background
                     if let image = mediaCaptureManager.capturedImage {
                         Image(uiImage: image)
                             .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .clipped()
-                            .ignoresSafeArea()
+                            .aspectRatio(9/16, contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.black)
+                            .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
                         // Video background for post creation
                         Color.black
-                            .ignoresSafeArea()
+                            .ignoresSafeArea(.all, edges: .all)
                     }
                 } else if mediaCaptureManager.showingCapturedMedia {
                     if let image = mediaCaptureManager.capturedImage {
                         Image(uiImage: image)
                             .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                            .clipped()
-                            .ignoresSafeArea()
+                            .aspectRatio(9/16, contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.black)
+                            .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
                         // Video player will be added here
                         Color.black
-                            .ignoresSafeArea()
+                            .ignoresSafeArea(.all, edges: .all)
                     }
                 } else if cameraManager.cameraPermissionGranted && cameraManager.cameraSessionReady {
                     LiveCameraView(session: cameraManager.cameraSession)
-                        .ignoresSafeArea()
+                        .aspectRatio(9/16, contentMode: .fit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black)
+                        .ignoresSafeArea(.all, edges: .all)
                 } else {
                     Color.black
                         .ignoresSafeArea()
