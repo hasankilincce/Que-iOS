@@ -3,17 +3,31 @@ import AVKit
 
 struct VideoPlayerView: View {
     let videoURL: URL
+    let videoId: String
+    let isVisible: Bool
+    @StateObject private var videoManager = VideoManager.shared
     @State private var player: AVPlayer?
     
     var body: some View {
         ZStack {
-            if let player = player {
-                VideoPlayer(player: player)
+            if let currentPlayer = player {
+                VideoPlayer(player: currentPlayer)
                     .onAppear {
-                        player.play()
+                        if isVisible {
+                            videoManager.playVideo(id: videoId, player: currentPlayer)
+                        }
                     }
                     .onDisappear {
-                        player.pause()
+                        videoManager.pauseVideo(id: videoId)
+                    }
+                    .onChange(of: isVisible) { _, newIsVisible in
+                        if newIsVisible {
+                            if let currentPlayer = player {
+                                videoManager.playVideo(id: videoId, player: currentPlayer)
+                            }
+                        } else {
+                            videoManager.pauseVideo(id: videoId)
+                        }
                     }
             } else {
                 Color.black
@@ -27,7 +41,7 @@ struct VideoPlayerView: View {
             setupPlayer()
         }
         .onDisappear {
-            player?.pause()
+            videoManager.removeVideo(id: videoId)
             player = nil
         }
     }

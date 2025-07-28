@@ -3,13 +3,16 @@ import AVKit
 
 struct BackgroundVideoView: View {
     let videoURL: String
+    let videoId: String
+    let isVisible: Bool
+    @StateObject private var videoManager = VideoManager.shared
     @State private var player: AVPlayer?
     @State private var isPlaying = false
     
     var body: some View {
         ZStack {
-            if let player = player {
-                VideoPlayer(player: player)
+            if let currentPlayer = player {
+                VideoPlayer(player: currentPlayer)
                     .frame(height: 320) // Fixed height for 9:16 viewing (vertical)
                     .clipped()
                     .cornerRadius(12)
@@ -64,8 +67,19 @@ struct BackgroundVideoView: View {
             setupPlayer()
         }
         .onDisappear {
-            player?.pause()
+            videoManager.removeVideo(id: videoId)
             player = nil
+        }
+        .onChange(of: isVisible) { _, newIsVisible in
+            if newIsVisible {
+                // Video görünür olduğunda oynat
+                if let currentPlayer = player {
+                    videoManager.playVideo(id: videoId, player: currentPlayer)
+                }
+            } else {
+                // Video görünmez olduğunda durdur
+                videoManager.pauseVideo(id: videoId)
+            }
         }
     }
     
@@ -90,7 +104,7 @@ struct BackgroundVideoView: View {
         
         // Player durumunu takip et
         player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { _ in
-            isPlaying = player?.timeControlStatus == .playing
+            isPlaying = videoManager.isVideoPlaying(id: videoId)
         }
         
         // Player status monitoring
@@ -112,9 +126,11 @@ struct BackgroundVideoView: View {
     
     private func togglePlayback() {
         if isPlaying {
-            player?.pause()
+            videoManager.pauseVideo(id: videoId)
         } else {
-            player?.play()
+            if let currentPlayer = player {
+                videoManager.playVideo(id: videoId, player: currentPlayer)
+            }
         }
     }
 } 

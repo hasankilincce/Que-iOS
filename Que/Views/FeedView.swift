@@ -150,7 +150,11 @@ struct PostRowView: View {
             // Background media (image or video)
             if post.hasBackgroundMedia {
                 if post.hasBackgroundVideo {
-                    BackgroundVideoView(videoURL: post.backgroundVideoURL!)
+                    BackgroundVideoView(
+                        videoURL: post.backgroundVideoURL!,
+                        videoId: "\(post.id)_background_video",
+                        isVisible: true // FeedView'da tüm videolar görünür kabul edilir
+                    )
                 } else if post.hasBackgroundImage {
                     BackgroundImageView(imageURL: post.backgroundImageURL!)
                 }

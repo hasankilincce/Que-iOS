@@ -51,7 +51,8 @@ struct FullScreenFeedView: View {
                             TikTokStylePostView(
                                 post: post,
                                 screenSize: geometry.size,
-                                onLike: { viewModel.toggleLike(for: post) }
+                                onLike: { viewModel.toggleLike(for: post) },
+                                isVisible: index == currentIndex
                             )
                             .offset(y: CGFloat(index - currentIndex) * geometry.size.height + dragOffset)
                             .opacity(opacity(for: index))
@@ -157,6 +158,7 @@ struct TikTokStylePostView: View {
     let post: Post
     let screenSize: CGSize
     let onLike: () -> Void
+    let isVisible: Bool
     @State private var showLikeAnimation = false
     @State private var isDoubleTapped = false
     
@@ -170,7 +172,11 @@ struct TikTokStylePostView: View {
                 // Content layer - perfect aspect ratio handling
                 if post.hasBackgroundVideo, let videoURL = post.backgroundVideoURL {
                     // Video background for full screen
-                    FullScreenVideoPlayerView(videoURL: videoURL)
+                    FullScreenVideoPlayerView(
+                        videoURL: videoURL,
+                        videoId: "\(post.id)_video",
+                        isVisible: isVisible
+                    )
                         .frame(
                             width: geometry.size.width,
                             height: geometry.size.height

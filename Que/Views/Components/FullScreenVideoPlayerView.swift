@@ -3,14 +3,17 @@ import AVKit
 
 struct FullScreenVideoPlayerView: View {
     let videoURL: String
+    let videoId: String
+    let isVisible: Bool
+    @StateObject private var videoManager = VideoManager.shared
     @State private var player: AVPlayer?
     @State private var isPlaying = false
     @State private var isLoading = true
     
     var body: some View {
         ZStack {
-            if let player = player {
-                VideoPlayer(player: player)
+            if let currentPlayer = player {
+                VideoPlayer(player: currentPlayer)
                     .aspectRatio(contentMode: .fill)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
@@ -18,13 +21,26 @@ struct FullScreenVideoPlayerView: View {
                         togglePlayback()
                     }
                     .onAppear {
-                        // Auto-play video when it appears
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            player.play()
+                        // Auto-play video when it appears and is visible
+                        if isVisible {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                videoManager.playVideo(id: videoId, player: currentPlayer)
+                            }
                         }
                     }
                     .onDisappear {
-                        player.pause()
+                        videoManager.pauseVideo(id: videoId)
+                    }
+                    .onChange(of: isVisible) { _, newIsVisible in
+                        if newIsVisible {
+                            // Video görünür olduğunda oynat
+                            if let currentPlayer = player {
+                                videoManager.playVideo(id: videoId, player: currentPlayer)
+                            }
+                        } else {
+                            // Video görünmez olduğunda durdur
+                            videoManager.pauseVideo(id: videoId)
+                        }
                     }
             } else {
                 // Loading state
@@ -65,7 +81,7 @@ struct FullScreenVideoPlayerView: View {
             setupPlayer()
         }
         .onDisappear {
-            player?.pause()
+            videoManager.removeVideo(id: videoId)
             player = nil
         }
     }
@@ -94,7 +110,7 @@ struct FullScreenVideoPlayerView: View {
         
         // Player durumunu takip et
         player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { _ in
-            isPlaying = player?.timeControlStatus == .playing
+            isPlaying = videoManager.isVideoPlaying(id: videoId)
         }
         
         // Monitor player status
@@ -108,9 +124,11 @@ struct FullScreenVideoPlayerView: View {
     
     private func togglePlayback() {
         if isPlaying {
-            player?.pause()
+            videoManager.pauseVideo(id: videoId)
         } else {
-            player?.play()
+            if let player = player {
+                videoManager.playVideo(id: videoId, player: player)
+            }
         }
     }
     

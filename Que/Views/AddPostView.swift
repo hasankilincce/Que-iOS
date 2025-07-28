@@ -31,7 +31,11 @@ struct AddPostView: View {
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
                         // Video background for post creation
-                        VideoPlayerView(videoURL: videoURL)
+                        VideoPlayerView(
+                            videoURL: videoURL,
+                            videoId: "add_post_video",
+                            isVisible: true
+                        )
                             .aspectRatio(9/16, contentMode: .fit)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(Color.black)
@@ -47,7 +51,11 @@ struct AddPostView: View {
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
                         // Video player
-                        VideoPlayerView(videoURL: videoURL)
+                        VideoPlayerView(
+                            videoURL: videoURL,
+                            videoId: "captured_video",
+                            isVisible: true
+                        )
                             .aspectRatio(9/16, contentMode: .fit)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(Color.black)
