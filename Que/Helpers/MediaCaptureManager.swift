@@ -135,6 +135,35 @@ class MediaCaptureManager: ObservableObject {
         capturedVideoURL = nil
         showingCapturedMedia = false
     }
+    
+    // Video seçimi için
+    func setVideoFromURL(_ url: URL) {
+        // Video'yu kalıcı konuma kopyala
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let videoName = "selected_video_\(Date().timeIntervalSince1970).mov"
+        let destinationURL = documentsPath.appendingPathComponent(videoName)
+        
+        do {
+            // Eğer dosya zaten varsa sil
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            
+            // Video'yu kopyala
+            try FileManager.default.copyItem(at: url, to: destinationURL)
+            capturedVideoURL = destinationURL
+            capturedImage = nil
+            showingCapturedMedia = true
+            
+            print("Video copied to: \(destinationURL.path)")
+        } catch {
+            print("Error copying video: \(error)")
+            // Hata durumunda orijinal URL'i kullan
+            capturedVideoURL = url
+            capturedImage = nil
+            showingCapturedMedia = true
+        }
+    }
 }
 
 // MARK: - Photo Capture Delegate

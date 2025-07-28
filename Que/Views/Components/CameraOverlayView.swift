@@ -206,12 +206,18 @@ struct CameraOverlayView: View {
             .padding(.bottom, 50)
         }
         .fullScreenCover(isPresented: $showImagePicker) {
-            UIKitImagePicker(image: $mediaCaptureManager.capturedImage, isPresented: $showImagePicker)
-                .onDisappear {
-                    if mediaCaptureManager.capturedImage != nil {
-                        mediaCaptureManager.showingCapturedMedia = true
-                    }
+            UIKitImagePicker(
+                image: $mediaCaptureManager.capturedImage,
+                videoURL: $mediaCaptureManager.capturedVideoURL,
+                isPresented: $showImagePicker
+            )
+            .onDisappear {
+                if let videoURL = mediaCaptureManager.capturedVideoURL {
+                    mediaCaptureManager.setVideoFromURL(videoURL)
+                } else if mediaCaptureManager.capturedImage != nil {
+                    mediaCaptureManager.showingCapturedMedia = true
                 }
+            }
         }
     }
 }

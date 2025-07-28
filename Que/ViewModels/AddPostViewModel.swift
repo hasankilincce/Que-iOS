@@ -208,16 +208,27 @@ class AddPostViewModel: ObservableObject {
     
     // Arkaplan video'sunu Firebase Storage'a yükle
     private func uploadBackgroundVideo(_ videoURL: URL) async throws -> String {
+        // Video dosyasının var olup olmadığını kontrol et
+        guard FileManager.default.fileExists(atPath: videoURL.path) else {
+            throw PostError.videoUploadFailed
+        }
+        
         let filename = "\(UUID().uuidString).mov"
         let storageRef = Storage.storage().reference().child("post_videos/\(filename)")
         
         let metadata = StorageMetadata()
         metadata.contentType = "video/quicktime"
         
-        _ = try await storageRef.putFileAsync(from: videoURL, metadata: metadata)
-        let downloadURL = try await storageRef.downloadURL()
-        
-        return downloadURL.absoluteString
+        do {
+            _ = try await storageRef.putFileAsync(from: videoURL, metadata: metadata)
+            let downloadURL = try await storageRef.downloadURL()
+            
+            print("🎬 Video uploaded successfully: \(downloadURL.absoluteString)")
+            return downloadURL.absoluteString
+        } catch {
+            print("❌ Video upload error: \(error)")
+            throw PostError.videoUploadFailed
+        }
     }
 }
 

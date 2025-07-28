@@ -1,9 +1,10 @@
 import SwiftUI
 import TOCropViewController
 
-// Sadece fotoğraf seçimi için
+// Fotoğraf ve video seçimi için
 struct UIKitImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
+    @Binding var videoURL: URL?
     @Binding var isPresented: Bool
 
     func makeCoordinator() -> Coordinator {
@@ -14,12 +15,19 @@ struct UIKitImagePicker: UIViewControllerRepresentable {
         let parent: UIKitImagePicker
         init(_ parent: UIKitImagePicker) { self.parent = parent }
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            // Fotoğraf seçimi
             if let uiImage = info[.originalImage] as? UIImage {
                 // Orientation'ı düzelt
                 let correctedImage = uiImage.fixOrientation()
                 // Fotoğrafı sıkıştır
                 let compressedImage = correctedImage.compressedForUpload() ?? correctedImage
                 parent.image = compressedImage
+                parent.videoURL = nil
+            }
+            // Video seçimi
+            else if let videoURL = info[.mediaURL] as? URL {
+                parent.videoURL = videoURL
+                parent.image = nil
             }
             parent.isPresented = false
         }
@@ -31,6 +39,9 @@ struct UIKitImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
+        picker.mediaTypes = ["public.image", "public.movie"] // Hem fotoğraf hem video
+        picker.videoQuality = .typeHigh
+        picker.videoMaximumDuration = 15.0 // 15 saniye maksimum
         return picker
     }
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}

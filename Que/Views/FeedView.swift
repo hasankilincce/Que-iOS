@@ -147,9 +147,13 @@ struct PostRowView: View {
                 .font(.body)
                 .lineLimit(nil)
             
-            // Background image (if any)
-            if post.hasBackgroundImage {
-                BackgroundImageView(imageURL: post.backgroundImageURL!)
+            // Background media (image or video)
+            if post.hasBackgroundMedia {
+                if post.hasBackgroundVideo {
+                    BackgroundVideoView(videoURL: post.backgroundVideoURL!)
+                } else if post.hasBackgroundImage {
+                    BackgroundImageView(imageURL: post.backgroundImageURL!)
+                }
             }
             
             // Answer için parent question gösterimi

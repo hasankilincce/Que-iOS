@@ -31,7 +31,10 @@ struct AddPostView: View {
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
                         // Video background for post creation
-                        Color.black
+                        VideoPlayerView(videoURL: videoURL)
+                            .aspectRatio(9/16, contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     }
                 } else if mediaCaptureManager.showingCapturedMedia {
@@ -43,8 +46,11 @@ struct AddPostView: View {
                             .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                        // Video player will be added here
-                        Color.black
+                        // Video player
+                        VideoPlayerView(videoURL: videoURL)
+                            .aspectRatio(9/16, contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     }
                 } else if cameraManager.cameraPermissionGranted && cameraManager.cameraSessionReady {
