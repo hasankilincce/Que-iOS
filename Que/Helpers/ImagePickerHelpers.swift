@@ -15,7 +15,9 @@ struct UIKitImagePicker: UIViewControllerRepresentable {
         init(_ parent: UIKitImagePicker) { self.parent = parent }
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let uiImage = info[.originalImage] as? UIImage {
-                parent.image = uiImage
+                // Fotoğrafı sıkıştır
+                let compressedImage = uiImage.compressedForUpload() ?? uiImage
+                parent.image = compressedImage
             }
             parent.isPresented = false
         }
@@ -48,8 +50,10 @@ struct UIKitCropImagePicker: UIViewControllerRepresentable {
         init(_ parent: UIKitCropImagePicker) { self.parent = parent }
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let uiImage = info[.originalImage] as? UIImage {
-                pickedImage = uiImage
-                let cropVC = TOCropViewController(croppingStyle: .circular, image: uiImage)
+                // Fotoğrafı sıkıştır
+                let compressedImage = uiImage.compressedForUpload() ?? uiImage
+                pickedImage = compressedImage
+                let cropVC = TOCropViewController(croppingStyle: .circular, image: compressedImage)
                 cropVC.delegate = self
                 picker.present(cropVC, animated: true)
             } else {
@@ -61,7 +65,9 @@ struct UIKitCropImagePicker: UIViewControllerRepresentable {
         }
         func cropViewController(_ cropViewController: TOCropViewController, didCropToCircularImage image: UIImage, with cropRect: CGRect, angle: Int) {
             let resized = image.resize(to: parent.cropSize)
-            parent.image = resized
+            // Sıkıştırılmış fotoğrafı kullan
+            let compressed = resized.compressedForUpload() ?? resized
+            parent.image = compressed
             cropViewController.dismiss(animated: true) {
                 self.parent.isPresented = false
             }
@@ -88,5 +94,11 @@ extension UIImage {
         let newImage = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return newImage ?? self
+    }
+    
+    /// Fotoğraf seçimi sonrası otomatik sıkıştırma
+    func compressedForUpload() -> UIImage? {
+        // 9:16 format için özel sıkıştırma
+        return ImageCompressionHelper.compressImageForPostWithAspectRatio(self)
     }
 } 

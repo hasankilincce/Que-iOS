@@ -39,6 +39,11 @@ class CameraManager: ObservableObject {
             let session = AVCaptureSession()
             session.sessionPreset = .photo
             
+            // 9:16 format için özel ayarlar
+            if session.canSetSessionPreset(.photo) {
+                session.sessionPreset = .photo
+            }
+            
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: self.cameraPosition) else { 
                 print("Camera device not found")
                 return 

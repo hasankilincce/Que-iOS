@@ -38,6 +38,18 @@ class MediaCaptureManager: ObservableObject {
         let settings = AVCapturePhotoSettings()
         settings.flashMode = .auto
         
+        // 9:16 format için özel ayarlar
+        if let photoOutputConnection = photoOutput.connection(with: .video) {
+            if photoOutputConnection.isVideoOrientationSupported {
+                photoOutputConnection.videoOrientation = .portrait
+            }
+            
+            // 9:16 aspect ratio için ayarlar
+            if photoOutputConnection.isVideoStabilizationSupported {
+                photoOutputConnection.preferredVideoStabilizationMode = .auto
+            }
+        }
+        
         print("Photo settings created: \(settings)")
         
         let delegate = PhotoCaptureDelegate(completion: { image in
@@ -147,11 +159,28 @@ class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
             return
         }
         
-        let finalImage = image
-        print("Using original image for both front and back camera")
+        // 9:16 format için fotoğrafı düzelt
+        let correctedImage = correctImageOrientation(image)
         
-        print("Photo captured successfully, calling completion with image")
-        completion(finalImage)
+        // Fotoğrafı sıkıştır
+        let compressedImage = correctedImage.compressedForUpload() ?? correctedImage
+        print("Photo captured, corrected and compressed successfully")
+        completion(compressedImage)
+    }
+    
+    // Fotoğraf yönünü düzelt
+    private func correctImageOrientation(_ image: UIImage) -> UIImage {
+        // Eğer fotoğraf zaten doğru yöndeyse, değiştirme
+        if image.imageOrientation == .up {
+            return image
+        }
+        
+        UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+        image.draw(in: CGRect(origin: .zero, size: image.size))
+        let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return normalizedImage ?? image
     }
 }
 

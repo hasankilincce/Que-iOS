@@ -74,6 +74,9 @@ class AddPostViewModel: ObservableObject {
     
     // Arkaplan fotoğrafı ekleme
     func setBackgroundImage(_ image: UIImage) {
+        // Test: Sıkıştırma öncesi ve sonrası boyutları karşılaştır
+        ImageCompressionTest.testCompression(image)
+        
         backgroundImage = image
         backgroundVideo = nil // Fotoğraf seçildiğinde video'yu temizle
     }
@@ -181,9 +184,15 @@ class AddPostViewModel: ObservableObject {
     
     // Arkaplan fotoğrafını Firebase Storage'a yükle
     private func uploadBackgroundImage(_ image: UIImage) async throws -> String {
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+        // 9:16 format için özel sıkıştırma kullan
+        guard let compressedImage = ImageCompressionHelper.compressImageForPostWithAspectRatio(image),
+              let imageData = compressedImage.jpegData(compressionQuality: ImageCompressionHelper.mediumQuality) else {
             throw PostError.imageCompressionFailed
         }
+        
+        // Debug: Dosya boyutunu logla
+        let fileSize = ImageCompressionHelper.formatFileSize(imageData)
+        print("📸 Post image compressed with 9:16 ratio: \(fileSize)")
         
         let filename = "\(UUID().uuidString).jpg"
         let storageRef = Storage.storage().reference().child("post_images/\(filename)")

@@ -58,7 +58,15 @@ class EditProfileViewModel: ObservableObject {
                 do {
                     let timestamp = Int(Date().timeIntervalSince1970)
                     let ref = Storage.storage().reference().child("profile_images/\(userId)_\(timestamp).jpg")
-                    let data = image.jpegData(compressionQuality: 0.85) ?? Data()
+                    
+                    guard let data = ImageCompressionHelper.createJPEGDataForProfile(image) else {
+                        throw NSError(domain: "ImageCompression", code: -1, userInfo: [NSLocalizedDescriptionKey: "Fotoğraf sıkıştırılamadı"])
+                    }
+                    
+                    // Debug: Dosya boyutunu logla
+                    let fileSize = ImageCompressionHelper.formatFileSize(data)
+                    print("👤 Profile image compressed: \(fileSize)")
+                    
                     _ = try await ref.putDataAsync(data)
                     let url = try await ref.downloadURL()
                     // (İsteğe bağlı) Eski fotoğrafı sil:

@@ -19,6 +19,9 @@ struct LiveCameraView: UIViewRepresentable {
         previewLayer.videoGravity = .resizeAspectFill
         previewLayer.frame = view.bounds
         
+        // 9:16 format için özel ayarlar
+        previewLayer.videoGravity = .resizeAspectFill
+        
         view.layer.addSublayer(previewLayer)
         
         print("LiveCameraView created with session: \(session)")
