@@ -94,12 +94,15 @@ struct FullScreenVideoPlayerView: View {
         
         isLoading = true
         
-        // Audio session'ı video oynatma için hazırla
-        AudioSessionManager.shared.prepareAudioSessionForVideo()
+        // Media session'ı video oynatma için hazırla (Control Center'da görünmesini engelle)
+        MediaSessionManager.shared.prepareForVideoPlayback()
         
         // Create player with the video URL
         let playerItem = AVPlayerItem(url: url)
         player = AVPlayer(playerItem: playerItem)
+        
+        // External playback'i devre dışı bırak (Control Center'da görünmesini engelle)
+        player?.allowsExternalPlayback = false
         
         // Video loop için
         NotificationCenter.default.addObserver(

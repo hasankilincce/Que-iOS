@@ -12,12 +12,14 @@ class AudioSessionManager {
             let audioSession = AVAudioSession.sharedInstance()
             
             // Audio session kategorisini video oynatma için ayarla
-            try audioSession.setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetooth, .allowBluetoothA2DP])
+            // .playback kategorisi sessiz modda da ses çalar
+            // .mixWithOthers ile Control Center'da görünmesini engellemeye çalış
+            try audioSession.setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetooth, .allowBluetoothA2DP, .mixWithOthers])
             
             // Audio session'ı aktif et
             try audioSession.setActive(true)
             
-            DebugLogger.logSuccess("Audio session configured for video playback")
+            DebugLogger.logSuccess("Audio session configured for video playback (playback mode)")
             
         } catch {
             // Error -50 normal bir durum, audio session zaten aktif

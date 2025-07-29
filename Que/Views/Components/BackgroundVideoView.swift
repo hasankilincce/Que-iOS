@@ -89,11 +89,14 @@ struct BackgroundVideoView: View {
             return
         }
         
-        // Audio session'ı video oynatma için hazırla
-        AudioSessionManager.shared.prepareAudioSessionForVideo()
+        // Media session'ı video oynatma için hazırla (Control Center'da görünmesini engelle)
+        MediaSessionManager.shared.prepareForVideoPlayback()
         
         let playerItem = AVPlayerItem(url: url)
         player = AVPlayer(playerItem: playerItem)
+        
+        // External playback'i devre dışı bırak (Control Center'da görünmesini engelle)
+        player?.allowsExternalPlayback = false
         
         // Video loop için
         NotificationCenter.default.addObserver(
