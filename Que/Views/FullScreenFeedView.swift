@@ -170,19 +170,24 @@ struct TikTokStylePostView: View {
                     .ignoresSafeArea(.all)
                 
                 // Content layer - perfect aspect ratio handling
-                if post.hasBackgroundVideo, let videoURL = post.backgroundVideoURL {
-                    // Video background for full screen
-                    FullScreenVideoPlayerView(
-                        videoURL: videoURL,
-                        videoId: "\(post.id)_video",
-                        isVisible: isVisible
-                    )
+                if post.hasBackgroundVideo, let signedVideoURL = post.backgroundVideoURL {
+                    // Signed URL'yi public URL'ye çevir
+                    let publicVideoURL = URLCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
+                    
+                    if let videoURL = URL(string: publicVideoURL) {
+                        // Video background for full screen
+                        FullScreenVideoPlayerView(
+                            videoURL: publicVideoURL,
+                            videoId: "\(post.id)_video",
+                            isVisible: isVisible
+                        )
                         .frame(
                             width: geometry.size.width,
                             height: geometry.size.height
                         )
                         .clipped()
                         .ignoresSafeArea(.all)
+                    }
                 } else if post.hasBackgroundImage, let imageURL = post.backgroundImageURL, let url = URL(string: imageURL) {
                     WebImage(url: url)
                         .resizable()

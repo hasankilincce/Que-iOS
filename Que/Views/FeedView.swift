@@ -50,6 +50,9 @@ struct FeedView: View {
                                     if post.id == viewModel.posts.last?.id {
                                         viewModel.loadMorePosts()
                                     }
+                                    
+                                    // Prefetch next video
+                                    viewModel.prefetchNextVideo(for: post)
                                 }
                             }
                         }
@@ -149,13 +152,17 @@ struct PostRowView: View {
             
             // Background media (image or video)
             if post.hasBackgroundMedia {
-                if post.hasBackgroundVideo {
-                    BackgroundVideoView(
-                        videoURL: post.backgroundVideoURL!,
-                        videoId: "\(post.id)_background_video",
-                        isVisible: true // FeedView'da tüm videolar görünür kabul edilir
-                    )
-                } else if post.hasBackgroundImage {
+                        if post.hasBackgroundVideo, let signedVideoURL = post.backgroundVideoURL {
+            // Signed URL'yi public URL'ye çevir
+            let publicVideoURL = URLCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
+            
+            if let videoURL = URL(string: publicVideoURL) {
+                VideoPostView(
+                    url: videoURL,
+                    videoId: "\(post.id)_background_video"
+                )
+            }
+        } else if post.hasBackgroundImage {
                     BackgroundImageView(imageURL: post.backgroundImageURL!)
                 }
             }

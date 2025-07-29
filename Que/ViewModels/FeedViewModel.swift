@@ -2,6 +2,7 @@ import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
 import FirebaseFunctions
+import AVKit
 
 @MainActor
 class FeedViewModel: ObservableObject {
@@ -10,6 +11,9 @@ class FeedViewModel: ObservableObject {
     @Published var isRefreshing: Bool = false
     @Published var errorMessage: String? = nil
     @Published var hasMorePosts: Bool = true
+    
+    // Video prefetch için
+    private var prefetchedVideos: Set<String> = []
     
     private var listener: ListenerRegistration?
     private var lastDocument: DocumentSnapshot?
@@ -86,6 +90,50 @@ class FeedViewModel: ObservableObject {
         isRefreshing = false
     }
     
+    // Video prefetch - görünen post'tan sonraki video'yu önceden yükle
+    func prefetchNextVideo(for currentPost: Post) {
+        guard let currentIndex = posts.firstIndex(where: { $0.id == currentPost.id }) else { return }
+        let nextIndex = currentIndex + 1
+        
+        guard nextIndex < posts.count else { return }
+        let nextPost = posts[nextIndex]
+        
+                guard nextPost.hasBackgroundVideo,
+            let signedVideoURL = nextPost.backgroundVideoURL else { return }
+        
+        let publicVideoURL = URLCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
+        guard !prefetchedVideos.contains(publicVideoURL) else { return }
+        
+        // Video'yu prefetch et
+        prefetchedVideos.insert(publicVideoURL)
+        
+        // AVPlayerItem oluştur (sadece metadata yükle)
+        if let url = URL(string: publicVideoURL) {
+            let asset = AVURLAsset(url: url)
+            let item = AVPlayerItem(asset: asset)
+            
+            // Sadece metadata yükle, video'yu oynatma
+            item.preferredForwardBufferDuration = 0
+            item.preferredPeakBitRate = 0
+            
+            print("🎬 Prefetching video: \(publicVideoURL)")
+        }
+    }
+    
+    // Bellek yönetimi - eski post'ları temizle
+    func trimPosts() {
+        guard posts.count > 100 else { return }
+        
+        // En eski 50 post'u sil
+        let postsToRemove = posts.count - 50
+        posts.removeFirst(postsToRemove)
+        
+        // Prefetch cache'ini de temizle
+        prefetchedVideos.removeAll()
+        
+        print("🧹 Trimmed posts: \(postsToRemove) posts removed")
+    }
+    
     // Load more posts (pagination)
     func loadMorePosts() {
         guard !isLoading, hasMorePosts, let lastDoc = lastDocument else { return }
@@ -115,6 +163,10 @@ class FeedViewModel: ObservableObject {
                 let uniqueNewPosts = newPosts.filter { !existingIds.contains($0.id) }
                 
                 self.posts.append(contentsOf: uniqueNewPosts)
+                
+                // Bellek yönetimi
+                self.trimPosts()
+                
                 self.lastDocument = documents.last
                 self.hasMorePosts = documents.count == self.postsPerPage
             }
