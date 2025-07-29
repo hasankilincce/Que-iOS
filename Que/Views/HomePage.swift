@@ -1,36 +1,34 @@
 import SwiftUI
 
-
 struct HomePage: View {
-    @State private var selectedTab: Tab = .home
-    @State private var isProfileRoot: Bool = true
-    @StateObject private var exploreVM = ExploreViewModel()
-    @State private var selectedUserId: String? = nil
+    @StateObject private var viewModel = HomeViewModel()
     
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
-                switch selectedTab {
+                switch viewModel.selectedTab {
                 case .home:
-                    FeedView()
+                    FullScreenFeedView(viewModel: viewModel.feedViewModel)
                 case .explore:
-                    ExploreView(viewModel: exploreVM, selectedUserId: $selectedUserId)
+                    ExploreView(viewModel: viewModel.exploreViewModel, selectedUserId: $viewModel.selectedUserId, isSearching: $viewModel.isExploreSearching)
                 case .add:
-                    AddPostView()
+                    NavigationStack {
+                        AddPostView(viewModel: viewModel.addPostViewModel, homeViewModel: viewModel)
+                    }
                 case .notifications:
                     NotificationsView()
                 case .profile:
-                    ProfileTabNavigation(isProfileRoot: $isProfileRoot)
+                    ProfileTabNavigation(isProfileRoot: $viewModel.isProfileRoot)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // Sadece ana sekmelerde ve profile root'ta tab bar göster
-            if (selectedTab != .add) && (selectedTab != .profile || isProfileRoot) {
-                CustomTabBar(selectedTab: $selectedTab, onTabTapped: { tab in
-                    if tab == .explore {
-                        selectedUserId = nil // Keşfet sekmesine tekrar tıklanınca ana sayfaya dön
-                    }
-                })
+            if viewModel.shouldShowTabBar {
+                CustomTabBar(
+                    selectedTab: $viewModel.selectedTab, 
+                    onTabTapped: viewModel.handleTabTap,
+                    badgeViewModel: viewModel.notificationBadgeViewModel
+                )
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -43,45 +41,10 @@ struct ProfileTabNavigation: View {
     @Binding var isProfileRoot: Bool
     var body: some View {
         NavigationStack {
-            ProfilePage(isProfileRoot: $isProfileRoot)
+            ProfilePage(userId: nil, isProfileRoot: $isProfileRoot)
         }
     }
 }
 
-// Placeholder views for each tab
-struct FeedView: View {
-    var body: some View {
-        NavigationStack {
-            VStack {
-                Text("Anasayfa")
-                    .font(.largeTitle.bold())
-                Spacer()
-            }
-        }
-    }
-}
 
-/*struct ExploreView: View {
-    var body: some View {
-        NavigationStack {
-            VStack {
-                Text("Keşfet")
-                    .font(.largeTitle.bold())
-                Spacer()
-            }
-        }
-    }
-}*/
-
-struct AddPostView: View {
-    var body: some View {
-        NavigationStack {
-            VStack {
-                Text("Gönderi Ekle")
-                    .font(.largeTitle.bold())
-                Spacer()
-            }
-        }
-    }
-}
 

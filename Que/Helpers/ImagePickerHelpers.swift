@@ -1,9 +1,10 @@
 import SwiftUI
 import TOCropViewController
 
-// Sadece fotoğraf seçimi için
+// Fotoğraf ve video seçimi için
 struct UIKitImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
+    @Binding var videoURL: URL?
     @Binding var isPresented: Bool
 
     func makeCoordinator() -> Coordinator {
@@ -14,8 +15,19 @@ struct UIKitImagePicker: UIViewControllerRepresentable {
         let parent: UIKitImagePicker
         init(_ parent: UIKitImagePicker) { self.parent = parent }
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            // Fotoğraf seçimi
             if let uiImage = info[.originalImage] as? UIImage {
-                parent.image = uiImage
+                // Orientation'ı düzelt
+                let correctedImage = uiImage.fixOrientation()
+                // Fotoğrafı sıkıştır
+                let compressedImage = correctedImage.compressedForUpload() ?? correctedImage
+                parent.image = compressedImage
+                parent.videoURL = nil
+            }
+            // Video seçimi
+            else if let videoURL = info[.mediaURL] as? URL {
+                parent.videoURL = videoURL
+                parent.image = nil
             }
             parent.isPresented = false
         }
@@ -27,6 +39,9 @@ struct UIKitImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
+        picker.mediaTypes = ["public.image", "public.movie"] // Hem fotoğraf hem video
+        picker.videoQuality = .typeHigh
+        picker.videoMaximumDuration = 15.0 // 15 saniye maksimum
         return picker
     }
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
@@ -48,8 +63,12 @@ struct UIKitCropImagePicker: UIViewControllerRepresentable {
         init(_ parent: UIKitCropImagePicker) { self.parent = parent }
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let uiImage = info[.originalImage] as? UIImage {
-                pickedImage = uiImage
-                let cropVC = TOCropViewController(croppingStyle: .circular, image: uiImage)
+                // Orientation'ı düzelt
+                let correctedImage = uiImage.fixOrientation()
+                // Fotoğrafı sıkıştır
+                let compressedImage = correctedImage.compressedForUpload() ?? correctedImage
+                pickedImage = compressedImage
+                let cropVC = TOCropViewController(croppingStyle: .circular, image: compressedImage)
                 cropVC.delegate = self
                 picker.present(cropVC, animated: true)
             } else {
@@ -61,7 +80,9 @@ struct UIKitCropImagePicker: UIViewControllerRepresentable {
         }
         func cropViewController(_ cropViewController: TOCropViewController, didCropToCircularImage image: UIImage, with cropRect: CGRect, angle: Int) {
             let resized = image.resize(to: parent.cropSize)
-            parent.image = resized
+            // Sıkıştırılmış fotoğrafı kullan
+            let compressed = resized.compressedForUpload() ?? resized
+            parent.image = compressed
             cropViewController.dismiss(animated: true) {
                 self.parent.isPresented = false
             }
@@ -88,5 +109,27 @@ extension UIImage {
         let newImage = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return newImage ?? self
+    }
+    
+    /// Fotoğraf orientation'ını düzelt
+    func fixOrientation() -> UIImage {
+        // Eğer orientation zaten doğruysa, değiştirme
+        if self.imageOrientation == .up {
+            return self
+        }
+        
+        // Yeni bir context oluştur
+        UIGraphicsBeginImageContextWithOptions(self.size, false, self.scale)
+        self.draw(in: CGRect(origin: .zero, size: self.size))
+        let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return normalizedImage ?? self
+    }
+    
+    /// Fotoğraf seçimi sonrası otomatik sıkıştırma
+    func compressedForUpload() -> UIImage? {
+        // 9:16 format için özel sıkıştırma
+        return ImageCompressionHelper.compressImageForPostWithAspectRatio(self)
     }
 } 

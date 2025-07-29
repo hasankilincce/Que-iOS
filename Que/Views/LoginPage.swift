@@ -3,11 +3,8 @@ import FirebaseFunctions
 import FirebaseAuth
 
 struct LoginPage: View {
-    @State private var username: String = ""
-    @State private var password: String = ""
+    @StateObject private var viewModel = LoginViewModel()
     @State private var showPassword: Bool = false
-    @State private var isLoading: Bool = false
-    @State private var errorMessage: String? = nil
     @FocusState private var focusedField: Field?
     @State private var showRegister = false
     @State private var showReset = false
@@ -28,18 +25,18 @@ struct LoginPage: View {
                         .foregroundColor(.gray)
                         .padding(.bottom, 24)
                     VStack(spacing: 16) {
-                        TextField("Kullanıcı adı", text: $username)
+                        TextField("Kullanıcı adı", text: $viewModel.username)
                             .textFieldStyle(.roundedBorder)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .focused($focusedField, equals: .username)
                         HStack {
                             if showPassword {
-                                TextField("Şifre", text: $password)
+                                TextField("Şifre", text: $viewModel.password)
                                     .textFieldStyle(.roundedBorder)
                                     .focused($focusedField, equals: .password)
                             } else {
-                                SecureField("Şifre", text: $password)
+                                SecureField("Şifre", text: $viewModel.password)
                                     .textFieldStyle(.roundedBorder)
                                     .focused($focusedField, equals: .password)
                             }
@@ -50,14 +47,16 @@ struct LoginPage: View {
                         }
                     }
                     .padding(.horizontal, 32)
-                    if let error = errorMessage {
+                    if let error = viewModel.errorMessage {
                         Text(error)
                             .foregroundColor(.red)
                             .padding(.top, 8)
                     }
                     Spacer()
                     Button(action: {
-                        login()
+                        Task {
+                            await viewModel.login()
+                        }
                     }) {
                         Text("Giriş Yap")
                             .font(.headline)
@@ -69,7 +68,7 @@ struct LoginPage: View {
                             .cornerRadius(22)
                     }
                     .padding(.bottom, 16)
-                    .disabled(username.isEmpty || password.isEmpty || isLoading)
+                    .disabled(!viewModel.isFormValid || viewModel.isLoading)
                     HStack {
                         Button("Kayıt Ol") { showRegister = true }
                             .foregroundColor(.purple)
@@ -80,7 +79,7 @@ struct LoginPage: View {
                     .padding(.horizontal, 32)
                     .padding(.bottom, 32)
                 }
-                if isLoading {
+                if viewModel.isLoading {
                     Color.black.opacity(0.2).ignoresSafeArea()
                     ProgressView()
                 }
@@ -95,32 +94,7 @@ struct LoginPage: View {
         }
     }
     
-    func login() {
-        isLoading = true
-        errorMessage = nil
-        let functions = Functions.functions(region: "us-east1")
-        functions.httpsCallable("loginWithUsername").call(["username": username, "password": password]) { result, error in
-            if let error = error as NSError? {
-                self.isLoading = false
-                self.errorMessage = error.localizedDescription
-                return
-            }
-            guard let data = (result?.data as? [String: Any]),
-                  let email = data["email"] as? String else {
-                self.isLoading = false
-                self.errorMessage = "Kullanıcı bulunamadı veya e-posta eksik."
-                return
-            }
-            Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
-                self.isLoading = false
-                if let error = error {
-                    self.errorMessage = error.localizedDescription
-                } else {
-                    // Başarılı giriş, ana sayfaya yönlendir
-                }
-            }
-        }
-    }
+
 }
 
 

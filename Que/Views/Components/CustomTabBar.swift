@@ -1,44 +1,10 @@
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
-
-// Tab enumu
-enum Tab: Int, CaseIterable {
-    case home, explore, add, notifications, profile
-}
-
-// Bildirim badge için ViewModel
-class NotificationBadgeViewModel: ObservableObject {
-    @Published var unreadCount: Int = 0
-    private var listener: ListenerRegistration?
-    
-    init() {
-        listenToNotifications()
-    }
-    
-    deinit {
-        listener?.remove()
-    }
-    
-    private func listenToNotifications() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-        listener = db.collection("users").document(userId)
-            .collection("notifications")
-            .whereField("isRead", isEqualTo: false)
-            .addSnapshotListener { [weak self] snapshot, _ in
-                DispatchQueue.main.async {
-                    self?.unreadCount = snapshot?.documents.count ?? 0
-                }
-            }
-    }
-}
 
 // CustomTabBar component
 struct CustomTabBar: View {
     @Binding var selectedTab: Tab
     var onTabTapped: ((Tab) -> Void)? = nil
-    @StateObject private var badgeVM = NotificationBadgeViewModel()
+    @ObservedObject var badgeViewModel: NotificationBadgeViewModel
     
     private let tabBarHeight: CGFloat = 62
     private let tabBarCornerRadius: CGFloat = 24
@@ -63,8 +29,8 @@ struct CustomTabBar: View {
                 .padding(.horizontal, 12)
                 .shadow(color: Color.black.opacity(0.06), radius: 10, y: -2)
             HStack(spacing: 0) {
-                tabButton(tab: .home, icon: "house", selectedIcon: "house.fill", label: "Anasayfa")
-                tabButton(tab: .explore, icon: "magnifyingglass", selectedIcon: "magnifyingglass", label: "Keşfet")
+                tabButton(tab: .home, icon: Tab.home.iconName, selectedIcon: Tab.home.selectedIconName, label: Tab.home.title)
+                tabButton(tab: .explore, icon: Tab.explore.iconName, selectedIcon: Tab.explore.selectedIconName, label: Tab.explore.title)
                 ZStack {
                     Circle()
                         .fill(LinearGradient(colors: [Color.purple, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -78,8 +44,8 @@ struct CustomTabBar: View {
                 }
                 .offset(y: plusButtonOffset)
                 .frame(width: plusButtonSize + 12)
-                tabButtonWithBadge(tab: .notifications, icon: "bell", selectedIcon: "bell.fill", label: "Bildirim", badgeCount: badgeVM.unreadCount)
-                tabButton(tab: .profile, icon: "person", selectedIcon: "person.fill", label: "Profilim")
+                tabButtonWithBadge(tab: .notifications, icon: Tab.notifications.iconName, selectedIcon: Tab.notifications.selectedIconName, label: Tab.notifications.title, badgeCount: badgeViewModel.unreadCount)
+                tabButton(tab: .profile, icon: Tab.profile.iconName, selectedIcon: Tab.profile.selectedIconName, label: Tab.profile.title)
             }
             .padding(.horizontal, 24)
             .frame(height: tabBarHeight)
