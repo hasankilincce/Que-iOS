@@ -40,5 +40,16 @@
 	<!-- Audio Session Category -->
 	<key>AVAudioSessionCategory</key>
 	<string>AVAudioSessionCategoryPlayback</string>
+	
+	<!-- Disable external playback controls -->
+	<key>UIRequiresPersistentWiFi</key>
+	<false/>
+	
+	<!-- Disable media controls in Control Center -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>audio</string>
+	</array>
 </dict>
 </plist>

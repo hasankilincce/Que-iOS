@@ -47,12 +47,12 @@ struct VideoPlayerView: View {
     }
     
     private func setupPlayer() {
-        // Media session'ı video oynatma için hazırla (Control Center'da görünmesini engelle)
-        MediaSessionManager.shared.prepareForVideoPlayback()
+        // Audio session'ı video oynatma için hazırla
+        AudioSessionManager.shared.prepareAudioSessionForVideo()
         
         player = AVPlayer(url: videoURL)
         
-        // External playback'i devre dışı bırak (Control Center'da görünmesini engelle)
+        // Bildirim çubuğunda video kontrollerini gizle
         player?.allowsExternalPlayback = false
         
         // Video loop için

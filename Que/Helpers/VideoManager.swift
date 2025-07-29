@@ -9,7 +9,7 @@ class VideoManager: ObservableObject {
     private var players: [String: AVPlayer] = [:]
     private var cancellables = Set<AnyCancellable>()
     private let audioSessionManager = AudioSessionManager.shared
-    private let mediaSessionManager = MediaSessionManager.shared
+    private let mediaControlManager = MediaControlManager.shared
     
     private init() {}
     
@@ -20,10 +20,10 @@ class VideoManager: ObservableObject {
             pauseVideo(id: currentId)
         }
         
-        // Media session'ı video oynatma için hazırla (Control Center'da görünmesini engelle)
-        mediaSessionManager.prepareForVideoPlayback()
+        // Media kontrollerini yapılandır (bildirim çubuğunda görünmeyi engelle)
+        mediaControlManager.configureForVideoPlayback()
         
-        // External playback'i devre dışı bırak (Control Center'da görünmesini engelle)
+        // Bildirim çubuğunda video kontrollerini gizle
         player.allowsExternalPlayback = false
         
         // Yeni videoyu oynat
@@ -31,13 +31,9 @@ class VideoManager: ObservableObject {
         players[id] = player
         player.play()
         
-        // Video oynatma sırasında Now Playing'i sürekli temizle
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.mediaSessionManager.clearNowPlayingInfo()
-        }
-        
         DebugLogger.logVideo("Playing video with ID: \(id)")
         DebugLogger.logAudio("Video should play with sound even in silent mode")
+        DebugLogger.logInfo("External playback controls and media controls disabled")
     }
     
     // Video oynatmayı durdur
@@ -57,10 +53,10 @@ class VideoManager: ObservableObject {
         pauseVideo(id: id)
         players.removeValue(forKey: id)
         
-        // Eğer hiç video oynatılmıyorsa session'ları temizle
+        // Eğer hiç video oynatılmıyorsa audio session'ı temizle
         if players.isEmpty {
             audioSessionManager.cleanupAudioSession()
-            mediaSessionManager.cleanupMediaSession()
+            mediaControlManager.cleanupForVideoStop()
         }
         
         DebugLogger.logVideo("Removed video with ID: \(id)")
@@ -74,9 +70,9 @@ class VideoManager: ObservableObject {
         }
         currentPlayingVideoId = nil
         
-        // Session'ları temizle
+        // Audio session'ı temizle
         audioSessionManager.cleanupAudioSession()
-        mediaSessionManager.cleanupMediaSession()
+        mediaControlManager.cleanupForVideoStop()
     }
     
     // Video'nun oynatılıp oynatılmadığını kontrol et
