@@ -33,7 +33,13 @@ struct PostCreationView: View {
                 }
                 .foregroundColor(.white)
                 .font(.system(size: 18, weight: .semibold))
-                .disabled(viewModel.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(viewModel.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
+                
+                if viewModel.isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(0.8)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 10)
@@ -128,6 +134,29 @@ struct PostCreationView: View {
                 selectedQuestion: $viewModel.selectedParentQuestion
             )
         }
+        .overlay(
+            // Video işleme durumu overlay'i
+            Group {
+                if viewModel.isVideoProcessing {
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.2)
+                        
+                        Text("Video işleniyor...")
+                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .medium))
+                        
+                        Text("Bu işlem birkaç dakika sürebilir")
+                            .foregroundColor(.white.opacity(0.7))
+                            .font(.system(size: 14))
+                    }
+                    .padding(30)
+                    .background(Color.black.opacity(0.8))
+                    .cornerRadius(15)
+                }
+            }
+        )
     }
     
     private func loadAvailableQuestions() {

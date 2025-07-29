@@ -115,6 +115,11 @@ struct AddPostView: View {
         }
         .onAppear {
             cameraManager.checkCameraPermission()
+            
+            // Video işleme durumunu kontrol etmek için timer başlat
+            if viewModel.isVideoProcessing {
+                startVideoProcessingTimer()
+            }
         }
         .alert("Kamera İzni Gerekli", isPresented: $cameraManager.showingPermissionAlert) {
             Button("Ayarlar") {
@@ -126,6 +131,15 @@ struct AddPostView: View {
         } message: {
             Text("Kamera erişimi için ayarlardan izin vermeniz gerekiyor.")
         }
+        .alert("Video İşleme Tamamlandı", isPresented: $viewModel.showVideoProcessingComplete) {
+            Button("Tamam") {
+                showingPostCreation = false
+                mediaCaptureManager.clearCapturedMedia()
+                homeViewModel.selectTab(.home)
+            }
+        } message: {
+            Text("Video başarıyla işlendi ve gönderiniz paylaşıldı!")
+        }
     }
     
     // MARK: - Post Creation Functions
@@ -135,9 +149,15 @@ struct AddPostView: View {
             await viewModel.createPost()
             
             DispatchQueue.main.async {
-                showingPostCreation = false
-                mediaCaptureManager.clearCapturedMedia()
-                homeViewModel.selectTab(.home)
+                if viewModel.isVideoProcessing {
+                    // Video işleniyorsa timer'ı başlat
+                    startVideoProcessingTimer()
+                } else {
+                    // Normal post ise direkt kapat
+                    showingPostCreation = false
+                    mediaCaptureManager.clearCapturedMedia()
+                    homeViewModel.selectTab(.home)
+                }
             }
         }
     }
@@ -186,6 +206,21 @@ struct AddPostView: View {
     
     private func stopVideoRecording() {
         mediaCaptureManager.stopVideoRecording(cameraManager: cameraManager)
+    }
+    
+    // MARK: - Video Processing Timer
+    
+    private func startVideoProcessingTimer() {
+        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { timer in
+            Task {
+                await viewModel.checkVideoProcessingStatus()
+                
+                // Video işleme tamamlandıysa timer'ı durdur
+                if !viewModel.isVideoProcessing {
+                    timer.invalidate()
+                }
+            }
+        }
     }
     
 

@@ -57,25 +57,6 @@ struct FullScreenVideoPlayerView: View {
                         }
                     )
             }
-            
-            // Play/Pause button overlay (only show when not playing)
-            if !isPlaying && player != nil {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: togglePlayback) {
-                            Image(systemName: "play.circle.fill")
-                                .font(.system(size: 64))
-                                .foregroundColor(.white)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(Circle())
-                        }
-                        .padding(.trailing, 32)
-                        .padding(.bottom, 32)
-                    }
-                }
-            }
         }
         .onAppear {
             setupPlayer()

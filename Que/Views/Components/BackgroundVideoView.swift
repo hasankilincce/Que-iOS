@@ -27,24 +27,6 @@ struct BackgroundVideoView: View {
                     .onTapGesture {
                         togglePlayback()
                     }
-                    .overlay(
-                        // Play/Pause button overlay
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Spacer()
-                                Button(action: togglePlayback) {
-                                    Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                        .font(.system(size: 48))
-                                        .foregroundColor(.white)
-                                        .background(Color.black.opacity(0.5))
-                                        .clipShape(Circle())
-                                }
-                                .padding(.trailing, 16)
-                                .padding(.bottom, 16)
-                            }
-                        }
-                    )
             } else {
                 // Loading state
                 RoundedRectangle(cornerRadius: 12)
