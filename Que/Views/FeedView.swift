@@ -152,17 +152,33 @@ struct PostRowView: View {
             
             // Background media (image or video)
             if post.hasBackgroundMedia {
-                        if post.hasBackgroundVideo, let signedVideoURL = post.backgroundVideoURL {
-            // Signed URL'yi public URL'ye çevir
-            let publicVideoURL = URLCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
-            
-            if let videoURL = URL(string: publicVideoURL) {
-                VideoPostView(
-                    url: videoURL,
-                    videoId: "\(post.id)_background_video"
-                )
-            }
-        } else if post.hasBackgroundImage {
+                if post.hasBackgroundVideo, let signedVideoURL = post.backgroundVideoURL {
+                    // Signed URL'yi public URL'ye çevir
+                    let publicVideoURL = URLCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
+                    
+                    if let videoURL = URL(string: publicVideoURL) {
+                        VideoPostView(
+                            url: videoURL,
+                            videoId: "\(post.id)_background_video"
+                        )
+                    }
+                } else if post.mediaType == "image", let imageURL = post.mediaURL {
+                    // Image post'ları için AsyncImage kullan
+                    AsyncImage(url: URL(string: imageURL)) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(9/16, contentMode: .fill)
+                            .clipped()
+                    } placeholder: {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.3))
+                            .aspectRatio(9/16, contentMode: .fill)
+                            .overlay(
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle())
+                            )
+                    }
+                } else if post.hasBackgroundImage {
                     BackgroundImageView(imageURL: post.backgroundImageURL!)
                 }
             }

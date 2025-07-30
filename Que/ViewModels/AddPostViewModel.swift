@@ -12,7 +12,9 @@ class AddPostViewModel: ObservableObject {
     @Published var backgroundVideo: URL? = nil
     @Published var isLoading: Bool = false
     @Published var isVideoProcessing: Bool = false
+    @Published var isImageProcessing: Bool = false
     @Published var showVideoProcessingComplete: Bool = false
+    @Published var showImageProcessingComplete: Bool = false
     @Published var errorMessage: String? = nil
     @Published var successMessage: String? = nil
     
@@ -102,7 +104,9 @@ class AddPostViewModel: ObservableObject {
         backgroundVideo = nil
         selectedParentQuestion = nil
         isVideoProcessing = false
+        isImageProcessing = false
         showVideoProcessingComplete = false
+        showImageProcessingComplete = false
         errorMessage = nil
         successMessage = nil
     }
@@ -158,16 +162,23 @@ class AddPostViewModel: ObservableObject {
             let postId = docRef.documentID
             
             // Arkaplan medyasını yükle (varsa)
-            var backgroundImageURL: String? = nil
-            
             if let image = backgroundImage {
-                backgroundImageURL = try await uploadBackgroundImage(image)
+                // Image için Firebase Functions formatında yükle
+                try await uploadBackgroundImage(image, postId: postId)
                 
-                // Fotoğraf URL'ini güncelle
+                // Image işleme durumunu güncelle
                 try await docRef.updateData([
-                    "backgroundImageURL": backgroundImageURL as Any,
                     "mediaType": "image"
+                    // mediaURL alanını eklemiyoruz, Firebase Functions güncelleyecek
                 ])
+                
+                // Image işleniyor mesajı
+                successMessage = "Fotoğraf yüklendi ve işleniyor..."
+                isImageProcessing = true
+                
+                // Image işleme durumunu kontrol et
+                await checkImageProcessingStatus(postId: postId)
+                
             } else if let videoURL = backgroundVideo {
                 // Video için Firebase Functions formatında yükle
                 try await uploadBackgroundVideo(videoURL, postId: postId)
@@ -177,9 +188,7 @@ class AddPostViewModel: ObservableObject {
                     "mediaType": "video"
                     // backgroundVideoURL alanını eklemiyoruz, Firebase Functions güncelleyecek
                 ])
-            }
-            
-            if backgroundVideo != nil {
+                
                 // Video işleniyor mesajı
                 successMessage = "Video yüklendi ve işleniyor..."
                 isVideoProcessing = true
@@ -237,8 +246,34 @@ class AddPostViewModel: ObservableObject {
         }
     }
     
-    // Arkaplan fotoğrafını Firebase Storage'a yükle
-    private func uploadBackgroundImage(_ image: UIImage) async throws -> String {
+    // Image işleme durumunu kontrol et
+    func checkImageProcessingStatus(postId: String) async {
+        do {
+            let doc = try await Firestore.firestore()
+                .collection("posts")
+                .document(postId)
+                .getDocument()
+            
+            if let data = doc.data(),
+               let mediaType = data["mediaType"] as? String,
+               mediaType == "image",
+               let mediaURL = data["mediaURL"] as? String,
+               !mediaURL.isEmpty {
+                // Image işleme tamamlandı
+                DispatchQueue.main.async {
+                    self.isImageProcessing = false
+                    self.showImageProcessingComplete = true
+                    self.successMessage = "Fotoğraf işleme tamamlandı!"
+                }
+                return
+            }
+        } catch {
+            print("Image işleme durumu kontrol edilirken hata: \(error)")
+        }
+    }
+    
+    // Arkaplan fotoğrafını Firebase Storage'a yükle (Cloud Functions için)
+    private func uploadBackgroundImage(_ image: UIImage, postId: String) async throws {
         // 9:16 format için özel sıkıştırma kullan
         guard let compressedImage = ImageCompressionHelper.compressImageForPostWithAspectRatio(image),
               let imageData = compressedImage.jpegData(compressionQuality: ImageCompressionHelper.mediumQuality) else {
@@ -249,16 +284,21 @@ class AddPostViewModel: ObservableObject {
         let fileSize = ImageCompressionHelper.formatFileSize(imageData)
         print("📸 Post image compressed with 9:16 ratio: \(fileSize)")
         
-        let filename = "\(UUID().uuidString).jpg"
-        let storageRef = Storage.storage().reference().child("post_images/\(filename)")
+        // Firebase Functions için özel format: post_images/<ID>/src.jpg
+        let storageRef = Storage.storage().reference().child("post_images/\(postId)/src.jpg")
         
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
         
-        _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
-        let downloadURL = try await storageRef.downloadURL()
-        
-        return downloadURL.absoluteString
+        do {
+            _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
+            
+            // Image yüklendi, Firebase Functions image işleme başlayacak
+            print("📸 Image uploaded to Firebase Functions processing path: post_images/\(postId)/src.jpg")
+        } catch {
+            print("❌ Image upload error: \(error)")
+            throw PostError.imageUploadFailed
+        }
     }
     
     // Arkaplan video'sunu Firebase Storage'a yükle
@@ -290,6 +330,7 @@ class AddPostViewModel: ObservableObject {
 enum PostError: LocalizedError {
     case userDataNotFound
     case imageCompressionFailed
+    case imageUploadFailed
     case videoUploadFailed
     
     var errorDescription: String? {
@@ -298,6 +339,8 @@ enum PostError: LocalizedError {
             return "Kullanıcı bilgileri bulunamadı."
         case .imageCompressionFailed:
             return "Fotoğraf sıkıştırılamadı."
+        case .imageUploadFailed:
+            return "Fotoğraf yüklenemedi."
         case .videoUploadFailed:
             return "Video yüklenemedi."
         }

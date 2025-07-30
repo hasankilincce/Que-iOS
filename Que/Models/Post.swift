@@ -41,6 +41,10 @@ struct Post: Identifiable, Codable {
     // Video desteği ekliyoruz
     let backgroundVideoURL: String?
     
+    // Cloud Functions ile işlenen medya için
+    let mediaType: String?
+    let mediaURL: String?
+    
     // Answer postları için parent question ID'si
     let parentQuestionId: String?
     
@@ -60,7 +64,7 @@ struct Post: Identifiable, Codable {
     }
     
     var hasBackgroundMedia: Bool {
-        hasBackgroundImage || hasBackgroundVideo
+        hasBackgroundImage || hasBackgroundVideo || (mediaType != nil && mediaURL != nil)
     }
     
     var isQuestion: Bool {
@@ -97,6 +101,8 @@ struct Post: Identifiable, Codable {
         
         self.backgroundImageURL = data["backgroundImageURL"] as? String
         self.backgroundVideoURL = data["backgroundVideoURL"] as? String
+        self.mediaType = data["mediaType"] as? String
+        self.mediaURL = data["mediaURL"] as? String
         self.parentQuestionId = data["parentQuestionId"] as? String
         
         self.createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
@@ -107,7 +113,7 @@ struct Post: Identifiable, Codable {
     }
     
     // Manual initializer
-    init(id: String, userId: String, username: String, displayName: String, userPhotoURL: String?, content: String, postType: PostType, backgroundImageURL: String? = nil, backgroundVideoURL: String? = nil, parentQuestionId: String? = nil, createdAt: Date = Date(), likesCount: Int = 0, commentsCount: Int = 0, isLiked: Bool = false, isBookmarked: Bool = false) {
+    init(id: String, userId: String, username: String, displayName: String, userPhotoURL: String?, content: String, postType: PostType, backgroundImageURL: String? = nil, backgroundVideoURL: String? = nil, mediaType: String? = nil, mediaURL: String? = nil, parentQuestionId: String? = nil, createdAt: Date = Date(), likesCount: Int = 0, commentsCount: Int = 0, isLiked: Bool = false, isBookmarked: Bool = false) {
         self.id = id
         self.userId = userId
         self.username = username
@@ -117,6 +123,8 @@ struct Post: Identifiable, Codable {
         self.postType = postType
         self.backgroundImageURL = backgroundImageURL
         self.backgroundVideoURL = backgroundVideoURL
+        self.mediaType = mediaType
+        self.mediaURL = mediaURL
         self.parentQuestionId = parentQuestionId
         self.createdAt = createdAt
         self.likesCount = likesCount
