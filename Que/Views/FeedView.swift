@@ -163,21 +163,8 @@ struct PostRowView: View {
                         )
                     }
                 } else if post.mediaType == "image", let imageURL = post.mediaURL {
-                    // Image post'ları için AsyncImage kullan
-                    AsyncImage(url: URL(string: imageURL)) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(9/16, contentMode: .fill)
-                            .clipped()
-                    } placeholder: {
-                        Rectangle()
-                            .fill(Color.gray.opacity(0.3))
-                            .aspectRatio(9/16, contentMode: .fill)
-                            .overlay(
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                            )
-                    }
+                    // Image post'ları için BackgroundImageView kullan (WebImage ile)
+                    BackgroundImageView(imageURL: imageURL)
                 } else if post.hasBackgroundImage {
                     BackgroundImageView(imageURL: post.backgroundImageURL!)
                 }
@@ -262,12 +249,12 @@ struct BackgroundImageView: View {
     let imageURL: String
     
     var body: some View {
-                    if let url = URL(string: imageURL) {
-                        WebImage(url: url)
-                            .resizable()
-                            .scaledToFill()
+        if let url = URL(string: imageURL) {
+            WebImage(url: url)
+                .resizable()
+                .scaledToFill()
                 .frame(height: 320) // Fixed height for 9:16 viewing (vertical)
-                            .clipped()
+                .clipped()
                 .cornerRadius(12)
                 .overlay(
                     LinearGradient(

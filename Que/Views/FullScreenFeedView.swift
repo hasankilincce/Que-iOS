@@ -188,6 +188,16 @@ struct TikTokStylePostView: View {
                         .clipped()
                         .ignoresSafeArea(.all)
                     }
+                } else if post.mediaType == "image", let imageURL = post.mediaURL, let url = URL(string: imageURL) {
+                    WebImage(url: url)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(
+                            width: geometry.size.width,
+                            height: geometry.size.height
+                        )
+                        .clipped()
+                        .ignoresSafeArea(.all)
                 } else if post.hasBackgroundImage, let imageURL = post.backgroundImageURL, let url = URL(string: imageURL) {
                     WebImage(url: url)
                         .resizable()
