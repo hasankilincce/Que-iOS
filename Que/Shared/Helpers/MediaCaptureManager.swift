@@ -7,158 +7,201 @@ class MediaCaptureManager: ObservableObject {
     @Published var capturedImage: UIImage?
     @Published var capturedVideoURL: URL?
     @Published var showingCapturedMedia = false
+    @Published var isLongPressing = false
     
     private var recordingStartTime: Date?
     private var recordingTimer: Timer?
     private var photoCaptureDelegate: PhotoCaptureDelegate?
+    private var videoRecordingDelegate: VideoRecordingDelegate?
     
+    // MARK: - Photo Capture
     func capturePhoto(cameraManager: CameraManager, completion: @escaping (Bool) -> Void) {
         guard let photoOutput = cameraManager.getPhotoOutput() else { 
-            print("Photo output is nil")
+            print("❌ Photo output is nil")
             completion(false)
             return 
         }
         
-        print("Starting photo capture...")
+        print("📸 Starting photo capture...")
         
-        // Set video orientation
-        if let conn = photoOutput.connection(with: .video),
-           conn.isVideoOrientationSupported {
-            conn.videoOrientation = .portrait
-            
-            if conn.isVideoMirroringSupported {
-                conn.isVideoMirrored = (cameraManager.cameraPosition == .front)
+        // Video orientation ayarla
+        if let connection = photoOutput.connection(with: .video) {
+            if connection.isVideoOrientationSupported {
+                connection.videoOrientation = .portrait
             }
-            
-            print("Video orientation set to: \(conn.videoOrientation.rawValue)")
+            if connection.isVideoMirroringSupported {
+                connection.isVideoMirrored = (cameraManager.cameraPosition == .front)
+            }
         }
-        
-        print("Photo output available codecs: \(photoOutput.availablePhotoCodecTypes)")
         
         let settings = AVCapturePhotoSettings()
-        
-        // Flaş ayarları - tüm kameralar için kullanıcının seçtiği modu kullan
         settings.flashMode = cameraManager.flashMode
         
-        // 9:16 format için özel ayarlar
-        if let photoOutputConnection = photoOutput.connection(with: .video) {
-            if photoOutputConnection.isVideoOrientationSupported {
-                photoOutputConnection.videoOrientation = .portrait
-            }
-            
-            // 9:16 aspect ratio için ayarlar
-            if photoOutputConnection.isVideoStabilizationSupported {
-                photoOutputConnection.preferredVideoStabilizationMode = .auto
-            }
-        }
-        
-        print("Photo settings created: \(settings)")
-        
-        let delegate = PhotoCaptureDelegate(completion: { image in
+        let delegate = PhotoCaptureDelegate { [weak self] image in
             DispatchQueue.main.async {
-                print("Photo capture completion called with image: \(image != nil)")
                 if let image = image {
-                    self.capturedImage = image
-                    self.showingCapturedMedia = true
-                    print("Photo captured successfully and set to UI")
+                    self?.capturedImage = image
+                    self?.showingCapturedMedia = true
+                    print("✅ Photo captured successfully")
                     completion(true)
                 } else {
-                    print("Photo capture failed - no image received")
+                    print("❌ Photo capture failed")
                     completion(false)
                 }
             }
-        }, cameraPosition: cameraManager.cameraPosition)
+        }
         
         photoCaptureDelegate = delegate
-        
-        print("About to call capturePhoto with delegate: \(delegate)")
-        print("Photo output connections before capture: \(photoOutput.connections)")
-        
         photoOutput.capturePhoto(with: settings, delegate: delegate)
-        print("capturePhoto called successfully")
     }
     
+    // MARK: - Video Recording
     func startVideoRecording(cameraManager: CameraManager) {
-        guard let movieOutput = cameraManager.getMovieOutput(), !isRecording else { return }
+        guard let movieOutput = cameraManager.getMovieOutput() else {
+            print("❌ Movie output is nil")
+            return
+        }
         
-        guard movieOutput.isRecording == false else { return }
+        guard !isRecording else {
+            print("⚠️ Already recording")
+            return
+        }
         
+        guard !movieOutput.isRecording else {
+            print("⚠️ Movie output is already recording")
+            return
+        }
+        
+        print("🎥 Starting video recording...")
+        
+        // Video ayarları
+        if let connection = movieOutput.connection(with: .video) {
+            if connection.isVideoOrientationSupported {
+                connection.videoOrientation = .portrait
+            }
+            if connection.isVideoStabilizationSupported {
+                connection.preferredVideoStabilizationMode = .auto
+            }
+        }
+        
+        // Video dosyası oluştur
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let videoName = "temp_video_\(Date().timeIntervalSince1970).mov"
+        let videoName = "video_\(Date().timeIntervalSince1970).mov"
         let videoURL = documentsPath.appendingPathComponent(videoName)
         
-        movieOutput.startRecording(to: videoURL, recordingDelegate: VideoRecordingDelegate { success, videoURL in
+        print("📁 Video will be saved to: \(videoURL)")
+        
+        // Hemen UI'ı güncelle
+        DispatchQueue.main.async {
+            self.isRecording = true
+            self.recordingStartTime = Date()
+            self.startRecordingTimer()
+        }
+        
+        // Video kaydını başlat
+        let delegate = VideoRecordingDelegate { [weak self] success, url in
             DispatchQueue.main.async {
                 if success {
-                    print("Video recording started successfully")
-                    self.isRecording = true
-                    self.recordingStartTime = Date()
-                    self.startRecordingTimer()
-                }
-                
-                if let videoURL = videoURL {
-                    self.capturedVideoURL = videoURL
-                    self.showingCapturedMedia = true
-                    print("Video saved to viewModel: \(videoURL)")
+                    print("✅ Video recording started successfully")
+                    if let url = url {
+                        self?.capturedVideoURL = url
+                        self?.showingCapturedMedia = true
+                        print("📹 Video saved: \(url)")
+                    }
+                } else {
+                    print("❌ Video recording failed to start")
+                    self?.isRecording = false
+                    self?.recordingTimer?.invalidate()
+                    self?.recordingTimer = nil
+                    self?.recordingDuration = 0
                 }
             }
-        })
+        }
+        
+        videoRecordingDelegate = delegate
+        movieOutput.startRecording(to: videoURL, recordingDelegate: delegate)
     }
     
     func stopVideoRecording(cameraManager: CameraManager) {
-        guard let movieOutput = cameraManager.getMovieOutput(), isRecording else { return }
+        guard let movieOutput = cameraManager.getMovieOutput() else {
+            print("❌ Movie output is nil")
+            return
+        }
+        
+        guard isRecording else {
+            print("⚠️ No active recording to stop")
+            return
+        }
+        
+        print("⏹️ Stopping video recording...")
+        
+        // Hemen UI'ı güncelle
+        DispatchQueue.main.async {
+            self.isRecording = false
+            self.recordingTimer?.invalidate()
+            self.recordingTimer = nil
+            self.recordingDuration = 0
+        }
         
         movieOutput.stopRecording()
-        isRecording = false
-        recordingTimer?.invalidate()
-        recordingTimer = nil
-        recordingDuration = 0
-        print("Video recording stopped")
     }
     
+    // MARK: - Timer Management
     private func startRecordingTimer() {
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            if let startTime = self.recordingStartTime {
-                self.recordingDuration = Date().timeIntervalSince(startTime)
-                
-                // Stop recording if max duration reached (15 seconds)
-                if self.recordingDuration >= 15.0 {
-                    // We can't call stopVideoRecording here because we don't have access to cameraManager
-                    // This will be handled by the timer in the view
-                }
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self, let startTime = self.recordingStartTime else { return }
+            
+            self.recordingDuration = Date().timeIntervalSince(startTime)
+            
+            // Maksimum 15 saniye
+            if self.recordingDuration >= 15.0 {
+                print("⏰ Max recording duration reached")
+                self.recordingTimer?.invalidate()
+                self.recordingTimer = nil
             }
         }
     }
     
+    // MARK: - Long Press Management
+    func startLongPress() {
+        print("👆 Long press started")
+        isLongPressing = true
+    }
+    
+    func endLongPress() {
+        print("👆 Long press ended")
+        isLongPressing = false
+    }
+    
+    // MARK: - Media Management
     func clearCapturedMedia() {
         capturedImage = nil
         capturedVideoURL = nil
         showingCapturedMedia = false
+        isRecording = false
+        recordingDuration = 0
+        recordingTimer?.invalidate()
+        recordingTimer = nil
     }
     
-    // Video seçimi için
     func setVideoFromURL(_ url: URL) {
-        // Video'yu kalıcı konuma kopyala
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let videoName = "selected_video_\(Date().timeIntervalSince1970).mov"
         let destinationURL = documentsPath.appendingPathComponent(videoName)
         
         do {
-            // Eğer dosya zaten varsa sil
             if FileManager.default.fileExists(atPath: destinationURL.path) {
                 try FileManager.default.removeItem(at: destinationURL)
             }
             
-            // Video'yu kopyala
             try FileManager.default.copyItem(at: url, to: destinationURL)
             capturedVideoURL = destinationURL
             capturedImage = nil
             showingCapturedMedia = true
             
-            print("Video copied to: \(destinationURL.path)")
+            print("📹 Video copied to: \(destinationURL.path)")
         } catch {
-            print("Error copying video: \(error)")
-            // Hata durumunda orijinal URL'i kullan
+            print("❌ Error copying video: \(error)")
             capturedVideoURL = url
             capturedImage = nil
             showingCapturedMedia = true
@@ -169,39 +212,33 @@ class MediaCaptureManager: ObservableObject {
 // MARK: - Photo Capture Delegate
 class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
     private let completion: (UIImage?) -> Void
-    private let cameraPosition: AVCaptureDevice.Position
     
-    init(completion: @escaping (UIImage?) -> Void, cameraPosition: AVCaptureDevice.Position) {
+    init(completion: @escaping (UIImage?) -> Void) {
         self.completion = completion
-        self.cameraPosition = cameraPosition
     }
     
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         if let error = error {
-            print("Photo capture error: \(error)")
+            print("❌ Photo capture error: \(error)")
             completion(nil)
             return
         }
         
         guard let imageData = photo.fileDataRepresentation(),
               let image = UIImage(data: imageData) else {
-            print("Failed to create image from photo data")
+            print("❌ Failed to create image from photo data")
             completion(nil)
             return
         }
         
-        // 9:16 format için fotoğrafı düzelt
         let correctedImage = correctImageOrientation(image)
-        
-        // Fotoğrafı sıkıştır
         let compressedImage = correctedImage.compressedForUpload() ?? correctedImage
-        print("Photo captured, corrected and compressed successfully")
+        
+        print("✅ Photo processed successfully")
         completion(compressedImage)
     }
     
-    // Fotoğraf yönünü düzelt
     private func correctImageOrientation(_ image: UIImage) -> UIImage {
-        // Eğer fotoğraf zaten doğru yöndeyse, değiştirme
         if image.imageOrientation == .up {
             return image
         }
@@ -224,17 +261,18 @@ class VideoRecordingDelegate: NSObject, AVCaptureFileOutputRecordingDelegate {
     }
     
     func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
+        print("🎬 Video recording started to: \(fileURL)")
         completion(true, nil)
     }
     
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         if let error = error {
-            print("Video recording error: \(error)")
+            print("❌ Video recording error: \(error)")
             completion(false, nil)
             return
         }
         
-        print("Video recorded successfully to: \(outputFileURL)")
+        print("✅ Video recorded successfully to: \(outputFileURL)")
         completion(true, outputFileURL)
     }
 } 

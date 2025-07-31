@@ -74,15 +74,7 @@ struct AddPostView: View {
                 
                 // Camera overlay UI
                 CameraOverlayView(
-                    cameraManager: cameraManager,
                     mediaCaptureManager: mediaCaptureManager,
-                    homeViewModel: homeViewModel,
-                    onCancel: {
-                        homeViewModel.selectTab(.home)
-                    },
-                    onUseCapturedMedia: {
-                        useCapturedMedia()
-                    },
                     onCapturePhoto: {
                         capturePhoto()
                     },
@@ -92,8 +84,18 @@ struct AddPostView: View {
                     onStopVideoRecording: {
                         stopVideoRecording()
                     },
+                    onUseCapturedMedia: {
+                        useCapturedMedia()
+                    },
                     onSwitchCamera: {
                         switchCamera()
+                    },
+                    onCancel: {
+                        homeViewModel.selectTab(.home)
+                    },
+                    onSettings: {
+                        // Settings logic here
+                        print("Settings button tapped")
                     }
                 )
                 
@@ -193,11 +195,13 @@ struct AddPostView: View {
     }
     
     private func startVideoRecording() {
+        print("🎥 Starting video recording from AddPostView...")
         mediaCaptureManager.startVideoRecording(cameraManager: cameraManager)
         
-        // Start a timer to check for max duration
+        // Maksimum süre kontrolü (15 saniye)
         Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
             if mediaCaptureManager.recordingDuration >= 15.0 {
+                print("⏰ Maximum recording duration reached (15s), stopping...")
                 stopVideoRecording()
                 timer.invalidate()
             }
@@ -205,6 +209,7 @@ struct AddPostView: View {
     }
     
     private func stopVideoRecording() {
+        print("⏹️ Stopping video recording from AddPostView...")
         mediaCaptureManager.stopVideoRecording(cameraManager: cameraManager)
     }
     
@@ -216,7 +221,8 @@ struct AddPostView: View {
                 await viewModel.checkVideoProcessingStatus()
                 
                 // Video işleme tamamlandıysa timer'ı durdur
-                if !viewModel.isVideoProcessing {
+                let isProcessing = await viewModel.isVideoProcessing
+                if !isProcessing {
                     timer.invalidate()
                 }
             }
