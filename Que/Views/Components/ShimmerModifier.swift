@@ -10,19 +10,19 @@ extension View {
                             LinearGradient(
                                 colors: [
                                     Color.clear,
-                                    Color.white.opacity(0.15),
-                                    Color.white.opacity(0.25),
-                                    Color.white.opacity(0.15),
+                                    Color.white.opacity(0.2),
+                                    Color.white.opacity(0.3),
+                                    Color.white.opacity(0.2),
                                     Color.clear
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
-                        .rotationEffect(.degrees(15))
+                        .rotationEffect(.degrees(20))
                         .offset(x: shimmerOffset(for: geometry.size.width))
                         .animation(
-                            Animation.easeInOut(duration: 2.0)
+                            Animation.easeInOut(duration: 1.8)
                                 .repeatForever(autoreverses: false),
                             value: shimmerOffset(for: geometry.size.width)
                         )
@@ -32,7 +32,7 @@ extension View {
     }
     
     private func shimmerOffset(for width: CGFloat) -> CGFloat {
-        return -width - 50
+        return -width - 60
     }
 }
 
@@ -96,6 +96,36 @@ extension View {
                             .repeatForever(autoreverses: true),
                         value: UUID()
                     )
+            )
+            .clipped()
+    }
+    
+    func pulseShimmer() -> some View {
+        self
+            .overlay(
+                GeometryReader { geometry in
+                    RoundedRectangle(cornerRadius: 0)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.clear,
+                                    Color.white.opacity(0.1),
+                                    Color.white.opacity(0.2),
+                                    Color.white.opacity(0.1),
+                                    Color.clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .scaleEffect(x: 1.2, y: 1)
+                        .offset(x: -geometry.size.width)
+                        .animation(
+                            Animation.easeInOut(duration: 1.5)
+                                .repeatForever(autoreverses: false),
+                            value: UUID()
+                        )
+                }
             )
             .clipped()
     }

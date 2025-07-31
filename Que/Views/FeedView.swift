@@ -7,16 +7,21 @@ struct FeedView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                if viewModel.isLoading && viewModel.posts.isEmpty {
-                    // Loading skeleton
+                if viewModel.showSkeleton || (viewModel.isLoading && viewModel.posts.isEmpty) {
+                    // Loading skeleton with improved UI
                     ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(0..<5, id: \.self) { _ in
+                        LazyVStack(spacing: 20) {
+                            ForEach(0..<6, id: \.self) { index in
                                 PostSkeletonView()
+                                    .transition(.opacity.combined(with: .scale))
+                                    .animation(.easeInOut(duration: 0.3).delay(Double(index) * 0.1), value: viewModel.showSkeleton)
                             }
                         }
-                        .padding()
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
                     }
+                    .background(Color(.systemGroupedBackground))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 } else if viewModel.posts.isEmpty {
                     // Empty state
                     VStack(spacing: 20) {
@@ -54,6 +59,8 @@ struct FeedView: View {
                                     // Prefetch next video
                                     viewModel.prefetchNextVideo(for: post)
                                 }
+                                .transition(.opacity.combined(with: .scale))
+                                .animation(.easeInOut(duration: 0.3), value: viewModel.posts.count)
                             }
                         }
                         .padding(.bottom, 100)
@@ -61,6 +68,7 @@ struct FeedView: View {
                     .refreshable {
                         await viewModel.refresh()
                     }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
                 
                 // Error overlay
@@ -268,103 +276,4 @@ struct BackgroundImageView: View {
     }
 }
 
-struct PostSkeletonView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // User header skeleton - exactly matching real structure
-            HStack {
-                // Profile image skeleton
-                Circle()
-                    .fill(Color(.systemGray6))
-                    .frame(width: 40, height: 40)
-                    .shimmer()
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    // Display name skeleton
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(.systemGray6))
-                        .frame(width: 130, height: 16)
-                        .shimmer()
-                    
-                    // Username skeleton
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(.systemGray6))
-                        .frame(width: 85, height: 12)
-                        .shimmer()
-                }
-                
-                Spacer()
-                
-                // Time ago skeleton
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(.systemGray6))
-                    .frame(width: 35, height: 12)
-                    .shimmer()
-            }
-            
-            // Content skeleton - multiple lines like real posts
-            VStack(alignment: .leading, spacing: 4) {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(.systemGray6))
-                    .frame(height: 16)
-                    .frame(maxWidth: .infinity)
-                    .shimmer()
-                
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(.systemGray6))
-                    .frame(height: 16)
-                    .frame(width: 280)
-                    .shimmer()
-                
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color(.systemGray6))
-                    .frame(height: 16)
-                    .frame(width: 180)
-                    .shimmer()
-            }
-            
-            // Sometimes show image skeleton (50% chance for variety)
-            if Bool.random() {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemGray6))
-                    .frame(height: 200)
-                    .shimmer()
-            }
-            
-            // Action buttons skeleton - matching real buttons layout
-            HStack(spacing: 24) {
-                // Like button skeleton
-                HStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color(.systemGray6))
-                        .frame(width: 16, height: 16)
-                        .shimmer()
-                    
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color(.systemGray6))
-                        .frame(width: 20, height: 12)
-                        .shimmer()
-                }
-                
-                // Comment button skeleton
-                HStack(spacing: 4) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color(.systemGray6))
-                        .frame(width: 16, height: 16)
-                        .shimmer()
-                    
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color(.systemGray6))
-                        .frame(width: 15, height: 12)
-                        .shimmer()
-                }
-                
-                Spacer()
-            }
-            .padding(.top, 8)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color(.systemBackground))
-    }
-} 
+ 

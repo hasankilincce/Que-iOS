@@ -11,6 +11,7 @@ class FeedViewModel: ObservableObject {
     @Published var isRefreshing: Bool = false
     @Published var errorMessage: String? = nil
     @Published var hasMorePosts: Bool = true
+    @Published var showSkeleton: Bool = true
     
     // Video prefetch için
     private var prefetchedVideos: Set<String> = []
@@ -43,14 +44,16 @@ class FeedViewModel: ObservableObject {
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
                 
-                self.isLoading = false
-                
                 if let error = error {
+                    self.isLoading = false
                     self.errorMessage = error.localizedDescription
                     return
                 }
                 
-                guard let documents = snapshot?.documents else { return }
+                guard let documents = snapshot?.documents else { 
+                    self.isLoading = false
+                    return 
+                }
                 
                 let loadedPosts = documents.compactMap { doc in
                     Post(id: doc.documentID, data: doc.data())
@@ -67,7 +70,14 @@ class FeedViewModel: ObservableObject {
                     }
                 }
                 
-                self.posts = uniquePosts
+                // Smooth transition için kısa delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.posts = uniquePosts
+                        self.isLoading = false
+                        self.showSkeleton = false
+                    }
+                }
                 
                 self.lastDocument = documents.last
                 self.hasMorePosts = documents.count == self.postsPerPage
@@ -82,11 +92,12 @@ class FeedViewModel: ObservableObject {
         // Reset pagination
         lastDocument = nil
         hasMorePosts = true
+        showSkeleton = true
         
         loadFeed()
         
         // Simulated delay for smooth animation
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        try? await Task.sleep(nanoseconds: 800_000_000)
         isRefreshing = false
     }
     
