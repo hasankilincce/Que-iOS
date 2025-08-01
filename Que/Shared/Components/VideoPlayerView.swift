@@ -18,6 +18,8 @@ struct VideoPlayerView: View {
         ZStack {
             if let currentPlayer = player {
                 VideoPlayer(player: currentPlayer)
+                    .aspectRatio(9/16, contentMode: .fit) // 9:16 aspect ratio için optimize edilmiş
+                    .clipped()
                     .onAppear {
                         if isVisible {
                             videoManager.playVideo(id: videoId, player: currentPlayer)

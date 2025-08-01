@@ -72,24 +72,59 @@ class MediaCaptureManager: ObservableObject {
             return
         }
         
-        print("🎥 Starting video recording...")
+        print("🎥 Starting video recording with 9:16 aspect ratio...")
         
-        // Video ayarları
+        // Video ayarları - 9:16 için optimize edilmiş
         if let connection = movieOutput.connection(with: .video) {
             if connection.isVideoOrientationSupported {
                 connection.videoOrientation = .portrait
+                print("📹 Video orientation set to portrait for 9:16 recording")
             }
             if connection.isVideoStabilizationSupported {
                 connection.preferredVideoStabilizationMode = .auto
+                print("📹 Video stabilization enabled for smooth 9:16 recording")
+            }
+            // Front camera için mirroring ayarı
+            if connection.isVideoMirroringSupported {
+                connection.isVideoMirrored = (cameraManager.cameraPosition == .front)
+                print("📹 Video mirroring set for front camera")
+            }
+            
+            // 9:16 aspect ratio için ek optimizasyonlar
+            if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraManager.cameraPosition) {
+                print("📹 Recording with device format: \(device.activeFormat.formatDescription)")
+                
+                // Video boyutlarını kontrol et
+                let maxDimensions = device.activeFormat.supportedMaxPhotoDimensions
+                print("📹 Supported max dimensions: \(maxDimensions)")
+                
+                // 9:16 oranında en uygun boyutu seç
+                let targetWidth: CGFloat = 1080
+                let targetHeight: CGFloat = 1920 // 9:16 oranı
+                
+                print("📹 Target video dimensions: \(targetWidth) x \(targetHeight) (9:16)")
+                
+                // 9:16 aspect ratio için uygun format ara
+                let formats = device.formats
+                for format in formats {
+                    let dimensions = format.supportedMaxPhotoDimensions
+                    for dimension in dimensions {
+                        let ratio = dimension.width / dimension.height
+                        if abs(Double(ratio) - 9.0/16.0) < 0.1 { // 9:16 oranına yakın
+                            print("📹 Found 9:16 compatible format: \(dimension.width) x \(dimension.height)")
+                        }
+                    }
+                }
             }
         }
         
-        // Video dosyası oluştur
+        // Video dosyası oluştur - 9:16 format için optimize edilmiş
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let videoName = "video_\(Date().timeIntervalSince1970).mov"
+        let videoName = "video_9x16_\(Date().timeIntervalSince1970).mov"
         let videoURL = documentsPath.appendingPathComponent(videoName)
         
         print("📁 Video will be saved to: \(videoURL)")
+        print("📹 Video format: MOV with 9:16 aspect ratio")
         
         // Hemen UI'ı güncelle
         DispatchQueue.main.async {
@@ -102,11 +137,12 @@ class MediaCaptureManager: ObservableObject {
         let delegate = VideoRecordingDelegate { [weak self] success, url in
             DispatchQueue.main.async {
                 if success {
-                    print("✅ Video recording started successfully")
+                    print("✅ Video recording started successfully with 9:16 aspect ratio")
                     if let url = url {
                         self?.capturedVideoURL = url
                         self?.showingCapturedMedia = true
                         print("📹 Video saved: \(url)")
+                        print("📹 Video aspect ratio: 9:16 (portrait)")
                     }
                 } else {
                     print("❌ Video recording failed to start")

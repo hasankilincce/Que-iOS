@@ -22,13 +22,14 @@ struct LiveCameraView: UIViewRepresentable {
         // 9:16 aspect ratio için özel ayarlar
         previewLayer.videoGravity = .resizeAspectFill
         
-        // 9:16 format için özel ayarlar
+        // 9:16 format için özel ayarlar - video kayıt için optimize edilmiş
         previewLayer.videoGravity = .resizeAspectFill
         
         view.layer.addSublayer(previewLayer)
         
         print("LiveCameraView created with session: \(session)")
         print("Preview layer added to view with frame: \(previewLayer.frame)")
+        print("📹 Preview layer configured for 9:16 aspect ratio video recording")
         
         // View'ın layout'u değiştiğinde preview layer'ı güncelle
         view.setNeedsLayout()

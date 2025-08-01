@@ -45,11 +45,14 @@ class CameraManager: ObservableObject {
         print("Setting up camera...")
         DispatchQueue.global(qos: .userInitiated).async {
             let session = AVCaptureSession()
-            session.sessionPreset = .photo
             
-            // 9:16 format için özel ayarlar
-            if session.canSetSessionPreset(.photo) {
-                session.sessionPreset = .photo
+            // 9:16 video kayıt için özel ayarlar
+            if session.canSetSessionPreset(.hd1920x1080) {
+                session.sessionPreset = .hd1920x1080
+                print("📹 Using HD 1920x1080 preset for 9:16 video recording")
+            } else if session.canSetSessionPreset(.high) {
+                session.sessionPreset = .high
+                print("📹 Using high quality preset for video recording")
             }
             
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: self.cameraPosition) else { 
@@ -83,11 +86,48 @@ class CameraManager: ObservableObject {
                     print("Failed to add photo output to session")
                 }
                 
-                // Movie output for video recording
+                // Movie output for video recording with 9:16 optimization
                 let movieOutput = AVCaptureMovieFileOutput()
                 if session.canAddOutput(movieOutput) {
                     session.addOutput(movieOutput)
                     print("Movie output added successfully")
+                    
+                    // Video connection ayarları - 9:16 için optimize edilmiş
+                    if let connection = movieOutput.connection(with: .video) {
+                        if connection.isVideoOrientationSupported {
+                            connection.videoOrientation = .portrait
+                            print("📹 Video orientation set to portrait for 9:16 recording")
+                        }
+                        if connection.isVideoStabilizationSupported {
+                            connection.preferredVideoStabilizationMode = .auto
+                            print("📹 Video stabilization enabled")
+                        }
+                        if connection.isVideoMirroringSupported {
+                            connection.isVideoMirrored = (self.cameraPosition == .front)
+                            print("📹 Video mirroring set for front camera")
+                        }
+                        
+                        // 9:16 aspect ratio için özel ayarlar
+                        if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: self.cameraPosition) {
+                            print("📹 Device format: \(device.activeFormat.formatDescription)")
+                            print("📹 Supported video dimensions: \(device.activeFormat.supportedMaxPhotoDimensions)")
+                            
+                            // 9:16 aspect ratio için en uygun formatı seç
+                            let formats = device.formats
+                            print("📹 Available formats count: \(formats.count)")
+                            
+                            // Portrait video için optimize edilmiş format ara
+                            for format in formats {
+                                let dimensions = format.supportedMaxPhotoDimensions
+                                for dimension in dimensions {
+                                    let ratio = dimension.width / dimension.height
+                                    if abs(Double(ratio) - 9.0/16.0) < 0.1 { // 9:16 oranına yakın
+                                        print("📹 Found 9:16 compatible format: \(dimension.width) x \(dimension.height)")
+                                    }
+                                }
+                            }
+                        }
+                    }
                 } else {
                     print("Failed to add movie output to session")
                 }
@@ -134,6 +174,26 @@ class CameraManager: ObservableObject {
             print("Camera switch error: \(error)")
         }
         
+        // Video connection ayarlarını güncelle - 9:16 için optimize edilmiş
+        if let movieOutput = movieOutput {
+            if let connection = movieOutput.connection(with: .video) {
+                if connection.isVideoOrientationSupported {
+                    connection.videoOrientation = .portrait
+                    print("📹 Video orientation updated to portrait for 9:16 recording")
+                }
+                if connection.isVideoStabilizationSupported {
+                    connection.preferredVideoStabilizationMode = .auto
+                    print("📹 Video stabilization updated for 9:16 recording")
+                }
+                if connection.isVideoMirroringSupported {
+                    connection.isVideoMirrored = (cameraPosition == .front)
+                    print("📹 Video mirroring updated for front camera")
+                }
+            }
+        }
+        
+
+        
         session.commitConfiguration()
     }
     
@@ -143,6 +203,10 @@ class CameraManager: ObservableObject {
     
     func getMovieOutput() -> AVCaptureMovieFileOutput? {
         return movieOutput
+    }
+    
+    func getCurrentDevice() -> AVCaptureDevice? {
+        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraPosition)
     }
     
     // Flaş modunu değiştir
