@@ -109,7 +109,7 @@ class FeedViewModel: ObservableObject {
         guard nextIndex < posts.count else { return }
         let nextPost = posts[nextIndex]
         
-                guard nextPost.hasBackgroundVideo,
+        guard nextPost.hasBackgroundVideo,
             let signedVideoURL = nextPost.backgroundVideoURL else { return }
         
         let publicVideoURL = URLCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
@@ -205,6 +205,4 @@ class FeedViewModel: ObservableObject {
             }
         }
     }
-}
-
- 
+} 

@@ -10,8 +10,9 @@ struct VideoPostView: View {
         ZStack {
             if let player = videoManager.getPlayer() {
                 VideoPlayer(player: player)
-                    .aspectRatio(9/16, contentMode: .fill)
-                    .clipped()
+                    .aspectRatio(9/16, contentMode: .fill) // FILL MODE: tam ekran, letterbox yok
+                    .frame(maxWidth: .infinity)
+                    .background(Color.black) // Siyah arka plan letterbox effect için
                     .cornerRadius(12)
                     .overlay(
                         // Stall indicator
@@ -33,10 +34,12 @@ struct VideoPostView: View {
                         }
                     )
             } else {
-                // Loading state
+                // Loading state - BackgroundImageView ile aynı boyut
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(.systemGray6))
-                    .aspectRatio(9/16, contentMode: .fit)
+                    .aspectRatio(9/16, contentMode: .fit) // BackgroundImageView ile aynı: fit mode
+                    .frame(maxWidth: .infinity)
+                    .background(Color.black) // BackgroundImageView ile aynı: siyah arka plan
                     .overlay(
                         VStack {
                             ProgressView()
@@ -53,6 +56,22 @@ struct VideoPostView: View {
         .onAppear { 
             print("🎬 VideoPostView: onAppear for videoId: \(videoId)")
             print("🎬 VideoPostView: URL: \(url)")
+            
+            // Video boyutlarını kontrol et
+            let asset = AVURLAsset(url: url)
+            asset.loadValuesAsynchronously(forKeys: ["tracks"]) {
+                DispatchQueue.main.async {
+                    if let track = try? asset.tracks(withMediaType: .video).first {
+                        let size = track.naturalSize
+                        let ratio = size.width / size.height
+                        print("🎬 Video dimensions: \(size.width) x \(size.height)")
+                        print("🎬 Video aspect ratio: \(ratio)")
+                        print("🎬 Target aspect ratio: \(9.0/16.0)")
+                        print("🎬 Difference: \(abs(ratio - 9.0/16.0))")
+                    }
+                }
+            }
+            
             videoManager.prepareVideo(url: url)
         }
         .onDisappear { 
