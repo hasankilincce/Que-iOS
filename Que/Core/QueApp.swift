@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import FirebaseCore
 import FirebaseAppCheck
 import FirebaseAuth
@@ -74,7 +75,17 @@ struct QueApp: App {
         // Audio session'ı uygulama başlangıcında yapılandır
         AudioSessionManager.shared.configureAudioSessionForVideoPlayback()
     }
-
+    var sharedModelContainer: ModelContainer = {
+        let schema = Schema([
+            Item.self,
+        ])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        do {
+            return try ModelContainer(for: schema, configurations: [configuration])
+        } catch {
+            fatalError("Could not create ModelContainer: \(error)")
+        }
+    }()
     var body: some Scene {
         WindowGroup {
             Group {
@@ -99,6 +110,7 @@ struct QueApp: App {
                 }
             }
         }
+        .modelContainer(sharedModelContainer)
         .environmentObject(appState)
     }
 }
