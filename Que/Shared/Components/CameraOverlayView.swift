@@ -142,7 +142,12 @@ struct CameraOverlayView: View {
                         onTap: {
                             if mediaCaptureManager.showingCapturedMedia {
                                 onUseCapturedMedia()
-                            } else if !mediaCaptureManager.isRecording {
+                            } else if mediaCaptureManager.isRecording {
+                                // Video kaydını durdur
+                                mediaCaptureManager.endLongPress()
+                                onStopVideoRecording()
+                            } else {
+                                // Fotoğraf çek
                                 onCapturePhoto()
                             }
                         },
@@ -153,10 +158,7 @@ struct CameraOverlayView: View {
                             }
                         },
                         onLongPressEnd: {
-                            if mediaCaptureManager.isRecording {
-                                mediaCaptureManager.endLongPress()
-                                onStopVideoRecording()
-                            }
+                            // Long press bitiminde hiçbir şey yapma, sadece tap ile durdur
                         }
                     )
                     
@@ -259,7 +261,7 @@ struct CaptureButton: View {
                     onLongPressStart()
                 }
                 .onEnded { _ in
-                    onLongPressEnd()
+                    // Long press bitiminde hiçbir şey yapma
                 }
         )
     }
