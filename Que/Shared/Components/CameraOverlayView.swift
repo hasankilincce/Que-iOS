@@ -243,13 +243,6 @@ struct CaptureButton: View {
                 Image(systemName: "checkmark")
                     .foregroundColor(.black)
                     .font(.system(size: 32, weight: .bold))
-            } else {
-                // Fotoğraf ikonu
-                Image(systemName: "camera")
-                    .foregroundColor(.black)
-                    .font(.system(size: 24, weight: .medium))
-                    .opacity(isRecording ? 0 : 1)
-                    .animation(.easeInOut(duration: 0.2), value: isRecording)
             }
         }
         .onTapGesture {

@@ -22,7 +22,7 @@ class AddPostViewModel: ObservableObject {
     @Published var selectedParentQuestion: Post? = nil
     @Published var availableQuestions: [Post] = []
     
-    private let maxContentLength = 280
+    let maxContentLength = 120
     
     var remainingCharacters: Int {
         maxContentLength - content.count
