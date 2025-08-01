@@ -4,7 +4,7 @@ import SwiftUI
 struct VideoPostView: View {
     let url: URL
     let videoId: String
-    @StateObject private var videoManager = VideoPlayerManager()
+    @StateObject private var videoManager = FeedVideoPlayerController()
     
     var body: some View {
         ZStack {

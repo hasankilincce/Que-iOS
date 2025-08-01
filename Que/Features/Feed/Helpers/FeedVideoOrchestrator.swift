@@ -2,14 +2,14 @@ import SwiftUI
 import AVKit
 import Combine
 
-class VideoManager: ObservableObject {
-    static let shared = VideoManager()
+class FeedVideoOrchestrator: ObservableObject {
+    static let shared = FeedVideoOrchestrator()
     
     @Published var currentPlayingVideoId: String?
     private var players: [String: AVPlayer] = [:]
     private var cancellables = Set<AnyCancellable>()
-    private let audioSessionManager = AudioSessionManager.shared
-    private let mediaControlManager = MediaControlManager.shared
+    private let audioSessionManager = FeedAudioSessionController.shared
+    private let mediaControlManager = FeedMediaControlHandler.shared
     
     private init() {}
     

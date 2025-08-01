@@ -1,7 +1,7 @@
 import AVKit
 import Foundation
 
-class VideoPlayerManager: NSObject, ObservableObject {
+class FeedVideoPlayerController: NSObject, ObservableObject {
     @Published var isStalled = false
     @Published var isLoading = true
     @Published var isReady = false
@@ -17,10 +17,10 @@ class VideoPlayerManager: NSObject, ObservableObject {
         isReady = false
         
         // 0. Audio session'ı hazırla
-        AudioSessionManager.shared.prepareAudioSessionForVideo()
+        FeedAudioSessionController.shared.prepareAudioSessionForVideo()
         
         // 1. HLS Asset + network cache with custom configuration
-        let config = URLCacheManager.shared.getURLSessionConfiguration()
+        let config = FeedVideoCacheManager.shared.getURLSessionConfiguration()
         let asset = AVURLAsset(url: url, options: [
             "AVURLAssetHTTPHeaderFieldsKey": config.httpAdditionalHeaders ?? [:]
         ])
@@ -121,7 +121,7 @@ class VideoPlayerManager: NSObject, ObservableObject {
         NotificationCenter.default.removeObserver(self)
         
         // Audio session'ı temizle
-        AudioSessionManager.shared.cleanupAudioSession()
+        FeedAudioSessionController.shared.cleanupAudioSession()
     }
     
     func getPlayer() -> AVPlayer? {

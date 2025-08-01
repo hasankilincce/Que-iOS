@@ -5,7 +5,7 @@ struct VideoPlayerView: View {
     let videoURL: URL
     let videoId: String
     let isVisible: Bool
-    @StateObject private var videoManager = VideoManager.shared
+    @StateObject private var videoManager = FeedVideoOrchestrator.shared
     @State private var player: AVPlayer?
     @State private var isLoading = true
     @State private var hasError = false
@@ -85,7 +85,7 @@ struct VideoPlayerView: View {
         hasError = false
         
         // Audio session'ı video oynatma için hazırla
-        AudioSessionManager.shared.prepareAudioSessionForVideo()
+        FeedAudioSessionController.shared.prepareAudioSessionForVideo()
         
         player = AVPlayer(url: videoURL)
         

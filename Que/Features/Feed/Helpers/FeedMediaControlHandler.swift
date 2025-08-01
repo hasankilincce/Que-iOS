@@ -1,8 +1,8 @@
 import MediaPlayer
 import AVFoundation
 
-class MediaControlManager {
-    static let shared = MediaControlManager()
+class FeedMediaControlHandler {
+    static let shared = FeedMediaControlHandler()
     
     private init() {}
     
@@ -39,7 +39,7 @@ class MediaControlManager {
         disableMediaControls()
         
         // Audio session'ı da yapılandır
-        AudioSessionManager.shared.prepareAudioSessionForVideo()
+        FeedAudioSessionController.shared.prepareAudioSessionForVideo()
     }
     
     // Video durdurma için media kontrollerini temizle

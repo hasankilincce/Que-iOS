@@ -112,7 +112,7 @@ class FeedViewModel: ObservableObject {
         guard nextPost.hasBackgroundVideo,
             let signedVideoURL = nextPost.backgroundVideoURL else { return }
         
-        let publicVideoURL = URLCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
+        let publicVideoURL = FeedVideoCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
         guard !prefetchedVideos.contains(publicVideoURL) else { return }
         
         // Video'yu prefetch et

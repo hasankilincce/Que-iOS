@@ -73,7 +73,7 @@ struct QueApp: App {
         FirebaseApp.configure()
         
         // Audio session'ı uygulama başlangıcında yapılandır
-        AudioSessionManager.shared.configureAudioSessionForVideoPlayback()
+        FeedAudioSessionController.shared.configureAudioSessionForVideoPlayback()
     }
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([

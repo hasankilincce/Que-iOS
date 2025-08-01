@@ -5,7 +5,7 @@ struct FullScreenVideoPlayerView: View {
     let videoURL: String
     let videoId: String
     let isVisible: Bool
-    @StateObject private var videoManager = VideoManager.shared
+    @StateObject private var videoManager = FeedVideoOrchestrator.shared
     @State private var player: AVPlayer?
     @State private var isPlaying = false
     @State private var isLoading = true
@@ -76,7 +76,7 @@ struct FullScreenVideoPlayerView: View {
         isLoading = true
         
         // Audio session'ı video oynatma için hazırla
-        AudioSessionManager.shared.prepareAudioSessionForVideo()
+        FeedAudioSessionController.shared.prepareAudioSessionForVideo()
         
         // Create player with the video URL
         let playerItem = AVPlayerItem(url: url)

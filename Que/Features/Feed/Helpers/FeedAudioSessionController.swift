@@ -1,8 +1,8 @@
 import AVFoundation
 import UIKit
 
-class AudioSessionManager {
-    static let shared = AudioSessionManager()
+class FeedAudioSessionController {
+    static let shared = FeedAudioSessionController()
     
     private init() {}
     

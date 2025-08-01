@@ -1,7 +1,7 @@
 import Foundation
 
-class URLCacheManager {
-    static let shared = URLCacheManager()
+class FeedVideoCacheManager {
+    static let shared = FeedVideoCacheManager()
     
     private let cache: URLCache
     

@@ -20,7 +20,7 @@ struct TikTokStylePostView: View {
                 // Content layer - perfect aspect ratio handling
                 if post.hasBackgroundVideo, let signedVideoURL = post.backgroundVideoURL {
                     // Signed URL'yi public URL'ye çevir
-                    let publicVideoURL = URLCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
+                    let publicVideoURL = FeedVideoCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
                     
                     if let videoURL = URL(string: publicVideoURL) {
                         // Video background for full screen
