@@ -8,6 +8,8 @@ class CameraManager: ObservableObject {
     @Published var cameraSessionReady = false
     @Published var showingPermissionAlert = false
     @Published var flashMode: AVCaptureDevice.FlashMode = .off
+    @Published var microphonePermissionGranted = false
+    @Published var showingMicrophonePermissionAlert = false
     
     private let userDefaults = UserDefaults.standard
     private let flashModeKey = "CameraFlashMode"
@@ -23,13 +25,13 @@ class CameraManager: ObservableObject {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             cameraPermissionGranted = true
-            setupCamera()
+            checkMicrophonePermission()
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 DispatchQueue.main.async {
                     self.cameraPermissionGranted = granted
                     if granted {
-                        self.setupCamera()
+                        self.checkMicrophonePermission()
                     }
                 }
             }
@@ -38,6 +40,31 @@ class CameraManager: ObservableObject {
             showingPermissionAlert = true
         @unknown default:
             cameraPermissionGranted = false
+        }
+    }
+    
+    func checkMicrophonePermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            microphonePermissionGranted = true
+            setupCamera()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .audio) { granted in
+                DispatchQueue.main.async {
+                    self.microphonePermissionGranted = granted
+                    if granted {
+                        self.setupCamera()
+                    } else {
+                        self.showingMicrophonePermissionAlert = true
+                    }
+                }
+            }
+        case .denied, .restricted:
+            microphonePermissionGranted = false
+            showingMicrophonePermissionAlert = true
+        @unknown default:
+            microphonePermissionGranted = false
+            showingMicrophonePermissionAlert = true
         }
     }
     
@@ -67,6 +94,23 @@ class CameraManager: ObservableObject {
                 if session.canAddInput(input) {
                     session.addInput(input)
                     print("Camera input added successfully")
+                }
+                
+                // Audio input for video recording
+                if let audioDevice = AVCaptureDevice.default(for: .audio) {
+                    do {
+                        let audioInput = try AVCaptureDeviceInput(device: audioDevice)
+                        if session.canAddInput(audioInput) {
+                            session.addInput(audioInput)
+                            print("🎤 Audio input added successfully for video recording")
+                        } else {
+                            print("❌ Failed to add audio input to session")
+                        }
+                    } catch {
+                        print("❌ Audio input setup error: \(error)")
+                    }
+                } else {
+                    print("❌ Audio device not found")
                 }
                 
                 // Photo output
@@ -128,6 +172,18 @@ class CameraManager: ObservableObject {
                             }
                         }
                     }
+                    
+                    // Audio connection ayarları
+                    if let audioConnection = movieOutput.connection(with: .audio) {
+                        print("🎤 Audio connection available for video recording")
+                        if audioConnection.isEnabled {
+                            print("🎤 Audio recording enabled")
+                        } else {
+                            print("❌ Audio recording disabled")
+                        }
+                    } else {
+                        print("❌ No audio connection available")
+                    }
                 } else {
                     print("Failed to add movie output to session")
                 }
@@ -154,21 +210,29 @@ class CameraManager: ObservableObject {
         
         session.beginConfiguration()
         
-        // Remove existing input
-        if let existingInput = session.inputs.first {
-            session.removeInput(existingInput)
+        // Remove existing video input only, keep audio input
+        let existingInputs = session.inputs
+        for input in existingInputs {
+            if let deviceInput = input as? AVCaptureDeviceInput {
+                if deviceInput.device.hasMediaType(.video) {
+                    session.removeInput(input)
+                    print("📹 Removed video input for camera switch")
+                }
+                // Audio input'u koru
+            }
         }
         
         // Switch camera position
         cameraPosition = cameraPosition == .back ? .front : .back
         
-        // Add new input
+        // Add new video input
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraPosition) else { return }
         
         do {
             let input = try AVCaptureDeviceInput(device: device)
             if session.canAddInput(input) {
                 session.addInput(input)
+                print("📹 New video input added for camera switch")
             }
         } catch {
             print("Camera switch error: \(error)")
@@ -191,8 +255,6 @@ class CameraManager: ObservableObject {
                 }
             }
         }
-        
-
         
         session.commitConfiguration()
     }

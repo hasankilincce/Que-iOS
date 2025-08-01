@@ -96,8 +96,3 @@ struct LoginPage: View {
     
 
 }
-
-
-#Preview {
-    LoginPage()
-} 

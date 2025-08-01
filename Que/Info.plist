@@ -30,6 +30,10 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Que, düzenlediğiniz fotoğrafları kaydetmenize olanak tanımak için fotoğraf kütüphanenize ekleme yetkisi istiyor.</string>
 	
+	<!-- Microphone Permission for Video Recording -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Que, video kayıt sırasında ses kaydetmek için mikrofonunuza erişim isteği gönderiyor.</string>
+	
 	<!-- Audio Session Configuration -->
 	<key>UIBackgroundModes</key>
 	<array>

@@ -133,6 +133,16 @@ struct AddPostView: View {
         } message: {
             Text("Kamera erişimi için ayarlardan izin vermeniz gerekiyor.")
         }
+        .alert("Mikrofon İzni Gerekli", isPresented: $cameraManager.showingMicrophonePermissionAlert) {
+            Button("Ayarlar") {
+                if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsUrl)
+                }
+            }
+            Button("İptal", role: .cancel) { }
+        } message: {
+            Text("Video kayıt sırasında ses kaydetmek için mikrofon erişimi gerekiyor.")
+        }
         .alert("Video İşleme Tamamlandı", isPresented: $viewModel.showVideoProcessingComplete) {
             Button("Tamam") {
                 showingPostCreation = false

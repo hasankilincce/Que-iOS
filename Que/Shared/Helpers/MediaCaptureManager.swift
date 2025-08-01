@@ -118,6 +118,17 @@ class MediaCaptureManager: ObservableObject {
             }
         }
         
+        // Audio connection kontrolü
+        if let audioConnection = movieOutput.connection(with: .audio) {
+            if audioConnection.isEnabled {
+                print("🎤 Audio recording enabled for video")
+            } else {
+                print("❌ Audio recording disabled for video")
+            }
+        } else {
+            print("❌ No audio connection available for video recording")
+        }
+        
         // Video dosyası oluştur - 9:16 format için optimize edilmiş
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let videoName = "video_9x16_\(Date().timeIntervalSince1970).mov"
