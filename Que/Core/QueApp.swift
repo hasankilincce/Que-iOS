@@ -5,6 +5,7 @@ import FirebaseAppCheck
 import FirebaseAuth
 import FirebaseFirestore
 import UserNotifications
+import AppTrackingTransparency
 
 
 class AppState: ObservableObject {
@@ -74,6 +75,11 @@ struct QueApp: App {
         
         // Audio session'ı uygulama başlangıcında yapılandır
         FeedAudioSessionController.shared.configureAudioSessionForVideoPlayback()
+        
+        // ATT izin akışını başlat
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            ATTManager.shared.requestTrackingAuthorization()
+        }
     }
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([

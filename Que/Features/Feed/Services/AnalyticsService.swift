@@ -34,10 +34,8 @@ class AnalyticsService: ObservableObject {
             userId: Auth.auth().currentUser?.uid
         )
         
-        logEvent("session_start", parameters: [
-            "session_id": currentSession?.id ?? "",
-            "user_id": Auth.auth().currentUser?.uid ?? "anonymous"
-        ])
+        // Firebase Analytics otomatik olarak session_start event'ini loglar
+        // Manuel loglama yapmıyoruz çünkü bu rezerve bir event ismi
     }
     
     func endSession() {

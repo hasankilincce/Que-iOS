@@ -42,21 +42,34 @@ class RealTimePersonalizationEngine: ObservableObject {
     }
     
     private func loadUserPreferences() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+        // Kullanıcı kimlik doğrulaması kontrolü
+        guard let currentUser = Auth.auth().currentUser else {
+            print("Kullanıcı giriş yapmamış, varsayılan tercihler kullanılıyor")
+            self.userPreferences = UserPreferences.default
+            self.updateFilters()
+            return
+        }
         
+        // Kullanıcının token'ını yenile
         Task {
             do {
-                let preferences = try await mlFunctions.getUserPreferences(userId: userId)
+                // Token'ı yenile
+                let token = try await currentUser.getIDToken(forcingRefresh: true)
+                print("Kullanıcı token yenilendi: \(currentUser.uid)")
+                
+                let preferences = try await mlFunctions.getUserPreferences(userId: currentUser.uid)
                 await MainActor.run {
                     self.userPreferences = UserPreferences(from: preferences)
                     self.updateFilters()
+                    print("Kullanıcı tercihleri başarıyla yüklendi")
                 }
             } catch {
                 print("Error loading user preferences: \(error)")
-                // Firebase Functions deploy edilmemişse varsayılan preferences kullan
+                // Hata durumunda varsayılan tercihler kullan
                 await MainActor.run {
                     self.userPreferences = UserPreferences.default
                     self.updateFilters()
+                    print("Varsayılan kullanıcı tercihleri kullanılıyor")
                 }
             }
         }

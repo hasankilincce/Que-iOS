@@ -55,5 +55,9 @@
 		<string>remote-notification</string>
 		<string>audio</string>
 	</array>
+	
+	<!-- App Tracking Transparency Permission -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Que, size daha iyi kişiselleştirilmiş içerik sunmak ve reklam deneyiminizi iyileştirmek için cihaz tanımlayıcınıza erişim isteği gönderiyor. Bu veri sadece size daha iyi hizmet sunmak için kullanılır ve üçüncü taraflarla paylaşılmaz.</string>
 </dict>
 </plist>
