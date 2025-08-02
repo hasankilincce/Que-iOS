@@ -54,6 +54,17 @@ struct Post: Identifiable, Codable {
     var isLiked: Bool = false
     var isBookmarked: Bool = false
     
+    // Like state management için mutating fonksiyonlar
+    mutating func toggleLike() {
+        isLiked.toggle()
+        likesCount += isLiked ? 1 : -1
+    }
+    
+    mutating func setLikeState(liked: Bool, count: Int) {
+        isLiked = liked
+        likesCount = count
+    }
+    
     // Computed properties
     var hasBackgroundImage: Bool {
         backgroundImageURL != nil && !backgroundImageURL!.isEmpty

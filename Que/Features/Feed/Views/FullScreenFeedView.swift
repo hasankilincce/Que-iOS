@@ -51,7 +51,11 @@ struct FullScreenFeedView: View {
                             TikTokStylePostView(
                                 post: post,
                                 screenSize: geometry.size,
-                                onLike: { viewModel.toggleLike(for: post) },
+                                onLike: {
+                                    Task {
+                                        await viewModel.toggleLike(for: post)
+                                    }
+                                },
                                 isVisible: index == currentIndex
                             )
                             .offset(y: CGFloat(index - currentIndex) * geometry.size.height + dragOffset)
