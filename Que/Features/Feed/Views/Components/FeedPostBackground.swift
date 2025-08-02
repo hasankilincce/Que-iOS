@@ -1,7 +1,7 @@
 import SwiftUI
 
-// MARK: - TikTok Style Gradient Background (Enhanced)
-struct TikTokStyleGradientBackground: View {
+// MARK: - Feed Post Gradient Background (Enhanced)
+struct FeedPostBackground: View {
     let post: Post
     
     var body: some View {

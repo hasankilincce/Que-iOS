@@ -253,7 +253,7 @@ struct PostCreationView: View {
                     .clipped()
                 
                 // Overlay gradients
-                TikTokStyleOverlayGradients(screenSize: geometry.size)
+                FeedPostGradients(screenSize: geometry.size)
                 
                 // Content - Feed style layout
                 VStack(spacing: 0) {

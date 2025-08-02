@@ -36,7 +36,8 @@ class ATTManager: ObservableObject {
                 // Firebase Analytics'e IDFA durumunu bildir
                 self?.updateAnalyticsForTrackingStatus(status)
                 
-                print("ATT Status: \(status.rawValue)")
+                let statusText = self?.getStatusText(status) ?? "Unknown"
+                print("ATT Status: \(status.rawValue) - \(statusText)")
             }
         }
     }
@@ -79,5 +80,21 @@ class ATTManager: ObservableObject {
     var advertisingIdentifier: String? {
         guard hasIDFAAccess else { return nil }
         return ASIdentifierManager.shared().advertisingIdentifier.uuidString
+    }
+    
+    // ATT durumunu metin olarak al
+    private func getStatusText(_ status: ATTrackingManager.AuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined:
+            return "Not Determined"
+        case .restricted:
+            return "Restricted"
+        case .denied:
+            return "Denied"
+        case .authorized:
+            return "Authorized"
+        @unknown default:
+            return "Unknown"
+        }
     }
 } 

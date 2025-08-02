@@ -1,7 +1,7 @@
 import SwiftUI
 
-// MARK: - TikTok Style Overlay Gradients (Enhanced)
-struct TikTokStyleOverlayGradients: View {
+// MARK: - Feed Post Overlay Gradients (Enhanced)
+struct FeedPostGradients: View {
     let screenSize: CGSize
     
     var body: some View {

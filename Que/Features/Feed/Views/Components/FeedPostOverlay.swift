@@ -1,8 +1,8 @@
 import SwiftUI
 import SDWebImageSwiftUI
 
-// MARK: - TikTok Style Content Overlay (Enhanced UX)
-struct TikTokStyleContentOverlay: View {
+// MARK: - Feed Post Content Overlay (Enhanced UX)
+struct FeedPostOverlay: View {
     let post: Post
     let screenSize: CGSize
     let onLike: () -> Void

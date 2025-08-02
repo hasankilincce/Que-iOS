@@ -1,8 +1,8 @@
 import SwiftUI
 import SDWebImageSwiftUI
 
-// MARK: - TikTok Style Post View (Enhanced UX)
-struct TikTokStylePostView: View {
+// MARK: - Video Feed Post View (Enhanced UX)
+struct VideoFeedPostView: View {
     let post: Post
     let screenSize: CGSize
     let onLike: () -> Void
@@ -58,7 +58,7 @@ struct TikTokStylePostView: View {
                         .ignoresSafeArea(.all)
                 } else {
                     // Text-only posts with enhanced gradient background
-                    TikTokStyleGradientBackground(post: post)
+                    FeedPostBackground(post: post)
                         .frame(
                             width: geometry.size.width,
                             height: geometry.size.height
@@ -67,15 +67,21 @@ struct TikTokStylePostView: View {
                 }
                 
                 // Enhanced overlay gradients
-                TikTokStyleOverlayGradients(screenSize: geometry.size)
+                FeedPostGradients(screenSize: geometry.size)
                 
                 // Content overlay with improved animations
-                TikTokStyleContentOverlay(
+                FeedPostOverlay(
                     post: post,
                     screenSize: geometry.size,
                     onLike: {
+                        // Sadece beğenme durumunda animasyon göster
+                        let wasLiked = post.isLiked
                         onLike()
-                        triggerLikeAnimation()
+                        
+                        // Sadece beğenme durumunda animasyon tetikle
+                        if !wasLiked {
+                            triggerLikeAnimation()
+                        }
                     }
                 )
                 
@@ -97,13 +103,18 @@ struct TikTokStylePostView: View {
         .clipped()
         .ignoresSafeArea(.all)
         .onTapGesture(count: 2) {
-            // Double tap to like
+            // Double tap to like - sadece beğenme durumunda animasyon
+            let wasLiked = post.isLiked
             onLike()
-            triggerLikeAnimation()
             
-            // Haptic feedback
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
+            // Sadece beğenme durumunda animasyon ve haptic feedback
+            if !wasLiked {
+                triggerLikeAnimation()
+                
+                // Haptic feedback
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.impactOccurred()
+            }
         }
     }
     

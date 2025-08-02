@@ -11,12 +11,19 @@ class FeedAudioSessionController {
         do {
             let audioSession = AVAudioSession.sharedInstance()
             
+            // Audio session zaten aktif mi kontrol et
+            if audioSession.isOtherAudioPlaying {
+                DebugLogger.logInfo("Other audio is playing, configuring session carefully")
+            }
+            
             // Audio session kategorisini video oynatma için ayarla
             // .interruptSpokenAudioAndMixWithOthers seçeneği bildirim çubuğunda görünmeyi engeller
             try audioSession.setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetooth, .allowBluetoothA2DP, .interruptSpokenAudioAndMixWithOthers])
             
-            // Audio session'ı aktif et
-            try audioSession.setActive(true)
+            // Audio session'ı aktif et (sadece gerekirse)
+            if !audioSession.isOtherAudioPlaying {
+                try audioSession.setActive(true)
+            }
             
             DebugLogger.logSuccess("Audio session configured for video playback")
             

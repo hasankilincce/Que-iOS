@@ -48,7 +48,7 @@ struct FullScreenFeedView: View {
                     // TikTok-style vertical scroll system
                     ZStack {
                         ForEach(Array(viewModel.posts.enumerated()), id: \.offset) { index, post in
-                            TikTokStylePostView(
+                            VideoFeedPostView(
                                 post: post,
                                 screenSize: geometry.size,
                                 onLike: {
