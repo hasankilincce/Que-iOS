@@ -56,7 +56,8 @@ class VideoSystemWrapper: ObservableObject {
     func createBackgroundVideoPlayer(videoURL: String, videoId: String, isVisible: Bool) -> some View {
         if useCustomSystem {
             return AnyView(
-                CustomBackgroundVideoView(
+                // CustomBackgroundVideoView artık kullanılmıyor, FullScreenVideoPlayerView kullan
+                CustomFullScreenVideoPlayerView(
                     videoURL: videoURL,
                     videoId: videoId,
                     isVisible: isVisible
@@ -64,7 +65,7 @@ class VideoSystemWrapper: ObservableObject {
             )
         } else {
             return AnyView(
-                BackgroundVideoView(
+                FullScreenVideoPlayerView(
                     videoURL: videoURL,
                     videoId: videoId,
                     isVisible: isVisible
