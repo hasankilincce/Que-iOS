@@ -78,9 +78,6 @@ class AddPostViewModel: ObservableObject {
     
     // Arkaplan fotoğrafı ekleme
     func setBackgroundImage(_ image: UIImage) {
-        // Test: Sıkıştırma öncesi ve sonrası boyutları karşılaştır
-        ImageCompressionTest.testCompression(image)
-        
         backgroundImage = image
         backgroundVideo = nil // Fotoğraf seçildiğinde video'yu temizle
     }

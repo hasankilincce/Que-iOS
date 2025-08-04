@@ -92,6 +92,3 @@ extension View {
     }
 }
 
-#Preview {
-    FeedShimmerLoadingView()
-}

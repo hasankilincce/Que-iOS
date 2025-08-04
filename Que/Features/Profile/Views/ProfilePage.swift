@@ -196,14 +196,12 @@ struct ProfileSkeletonView: View {
             Circle()
                 .fill(Color(.systemGray6))
                 .frame(width: 96, height: 96)
-                .shimmer()
                 .padding(.top, 20)
             
             // Display name skeleton - matching font size
             RoundedRectangle(cornerRadius: 4)
                 .fill(Color(.systemGray6))
                 .frame(width: 150, height: 24)
-                .shimmer()
                 .padding(.top, 2)
             
             // Takipçi ve takip skeleton - matching real layout
@@ -212,24 +210,20 @@ struct ProfileSkeletonView: View {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 35, height: 20)
-                        .shimmer()
                     
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 50, height: 12)
-                        .shimmer()
                 }
                 
                 VStack(spacing: 4) {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 35, height: 20)
-                        .shimmer()
                     
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 60, height: 12)
-                        .shimmer()
                 }
             }
             
@@ -237,7 +231,6 @@ struct ProfileSkeletonView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.systemGray6))
                 .frame(width: 100, height: 32)
-                .shimmer()
                 .padding(.top, 8)
             
             // Bio skeleton - multiple lines
@@ -245,12 +238,10 @@ struct ProfileSkeletonView: View {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color(.systemGray6))
                     .frame(width: 280, height: 16)
-                    .shimmer()
                 
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color(.systemGray6))
                     .frame(width: 200, height: 16)
-                    .shimmer()
             }
             .padding(.top, 8)
             

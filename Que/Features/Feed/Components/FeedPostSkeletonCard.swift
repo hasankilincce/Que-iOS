@@ -11,12 +11,10 @@ struct PostSkeletonView: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.systemGray6))
                         .frame(width: 12, height: 12)
-                        .shimmer()
                     
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 60, height: 16)
-                        .shimmer()
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
@@ -32,20 +30,17 @@ struct PostSkeletonView: View {
                 Circle()
                     .fill(Color(.systemGray6))
                     .frame(width: 40, height: 40)
-                    .pulseShimmer()
                 
                 VStack(alignment: .leading, spacing: 4) {
                     // Display name skeleton
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color(.systemGray6))
                         .frame(width: 120, height: 16)
-                        .shimmer()
                     
                     // Username skeleton
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 80, height: 12)
-                        .shimmer()
                 }
                 
                 Spacer()
@@ -54,7 +49,6 @@ struct PostSkeletonView: View {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color(.systemGray6))
                     .frame(width: 40, height: 12)
-                    .shimmer()
             }
             
             // Content skeleton - multiple lines with varying lengths
@@ -63,25 +57,21 @@ struct PostSkeletonView: View {
                     .fill(Color(.systemGray6))
                     .frame(height: 16)
                     .frame(maxWidth: .infinity)
-                    .shimmer()
                 
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color(.systemGray6))
                     .frame(height: 16)
                     .frame(width: 280)
-                    .shimmer()
                 
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color(.systemGray6))
                     .frame(height: 16)
                     .frame(width: 200)
-                    .shimmer()
                 
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color(.systemGray6))
                     .frame(height: 16)
                     .frame(width: 150)
-                    .shimmer()
             }
             
             // Media skeleton (70% chance to show for variety)
@@ -89,19 +79,16 @@ struct PostSkeletonView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color(.systemGray6))
                     .frame(height: 240)
-                    .shimmer()
                     .overlay(
                         // Media type indicator
                         HStack {
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(Color(.systemGray5))
                                 .frame(width: 16, height: 16)
-                                .shimmer()
                             
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(Color(.systemGray5))
                                 .frame(width: 40, height: 12)
-                                .shimmer()
                             
                             Spacer()
                         }
@@ -117,12 +104,10 @@ struct PostSkeletonView: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.systemGray6))
                         .frame(width: 18, height: 16)
-                        .shimmer()
                     
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 25, height: 12)
-                        .shimmer()
                 }
                 
                 // Comment button skeleton
@@ -130,12 +115,10 @@ struct PostSkeletonView: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.systemGray6))
                         .frame(width: 18, height: 16)
-                        .shimmer()
                     
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 20, height: 12)
-                        .shimmer()
                 }
                 
                 // Share button skeleton
@@ -143,12 +126,10 @@ struct PostSkeletonView: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.systemGray6))
                         .frame(width: 18, height: 16)
-                        .shimmer()
                     
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 30, height: 12)
-                        .shimmer()
                 }
                 
                 Spacer()
@@ -172,18 +153,15 @@ struct CompactPostSkeletonView: View {
                 Circle()
                     .fill(Color(.systemGray6))
                     .frame(width: 32, height: 32)
-                    .shimmer()
                 
                 VStack(alignment: .leading, spacing: 2) {
                     RoundedRectangle(cornerRadius: 3)
                         .fill(Color(.systemGray6))
                         .frame(width: 100, height: 14)
-                        .shimmer()
                     
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.systemGray6))
                         .frame(width: 70, height: 10)
-                        .shimmer()
                 }
                 
                 Spacer()
@@ -191,7 +169,6 @@ struct CompactPostSkeletonView: View {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Color(.systemGray6))
                     .frame(width: 35, height: 10)
-                    .shimmer()
             }
             
             // Content
@@ -200,13 +177,11 @@ struct CompactPostSkeletonView: View {
                     .fill(Color(.systemGray6))
                     .frame(height: 14)
                     .frame(maxWidth: .infinity)
-                    .shimmer()
                 
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color(.systemGray6))
                     .frame(height: 14)
                     .frame(width: 200)
-                    .shimmer()
             }
             
             // Actions
@@ -215,24 +190,20 @@ struct CompactPostSkeletonView: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.systemGray6))
                         .frame(width: 14, height: 14)
-                        .shimmer()
                     
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.systemGray6))
                         .frame(width: 20, height: 10)
-                        .shimmer()
                 }
                 
                 HStack(spacing: 4) {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.systemGray6))
                         .frame(width: 14, height: 14)
-                        .shimmer()
                     
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color(.systemGray6))
                         .frame(width: 15, height: 10)
-                        .shimmer()
                 }
                 
                 Spacer()
@@ -243,12 +214,3 @@ struct CompactPostSkeletonView: View {
         .background(Color(.systemBackground))
     }
 }
-
-#Preview {
-    VStack(spacing: 20) {
-        PostSkeletonView()
-        CompactPostSkeletonView()
-    }
-    .padding()
-    .background(Color(.systemGroupedBackground))
-} 

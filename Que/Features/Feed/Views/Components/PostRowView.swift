@@ -73,9 +73,10 @@ struct PostRowView: View {
                     let publicVideoURL = FeedVideoCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
                     
                     if let videoURL = URL(string: publicVideoURL) {
-                        VideoPostView(
-                            url: videoURL,
-                            videoId: "\(post.id)_background_video"
+                        CustomVideoPlayerView(
+                            videoURL: videoURL,
+                            videoId: "\(post.id)_background_video",
+                            isVisible: true
                         )
                     }
                 } else if post.mediaType == "image", let imageURL = post.mediaURL {

@@ -69,20 +69,17 @@ struct ExploreView: View {
                                             Circle()
                                                 .fill(Color(.systemGray6))
                                                 .frame(width: 40, height: 40)
-                                                .shimmer()
                                             
                                             VStack(alignment: .leading, spacing: 2) {
                                                 // Display name skeleton
                                                 RoundedRectangle(cornerRadius: 3)
                                                     .fill(Color(.systemGray6))
                                                     .frame(width: 140, height: 16)
-                                                    .shimmer()
                                                 
                                                 // Username skeleton
                                                 RoundedRectangle(cornerRadius: 3)
                                                     .fill(Color(.systemGray6))
                                                     .frame(width: 90, height: 14)
-                                                    .shimmer()
                                             }
                                             Spacer()
                                         }
