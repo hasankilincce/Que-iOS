@@ -30,16 +30,26 @@ struct AddPostView: View {
                             .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                        // Video background for post creation - 9:16 aspect ratio için optimize edilmiş
-                        VideoPlayerView(
-                            videoURL: videoURL,
-                            videoId: "add_post_video",
-                            isVisible: true
-                        )
-                            .aspectRatio(9/16, contentMode: .fit) // 9:16 aspect ratio
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.black)
-                            .ignoresSafeArea(.all, edges: .all)
+                        // Post creation background
+                        if let image = mediaCaptureManager.capturedImage {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(9/16, contentMode: .fit)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(Color.black)
+                                .ignoresSafeArea(.all, edges: .all)
+                        } else if let videoURL = mediaCaptureManager.capturedVideoURL {
+                            // Video player - Custom video player kullan
+                            CustomVideoPlayerView(
+                                videoURL: videoURL,
+                                videoId: "captured_video",
+                                isVisible: true
+                            )
+                                .aspectRatio(9/16, contentMode: .fit) // 9:16 aspect ratio
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(Color.black)
+                                .ignoresSafeArea(.all, edges: .all)
+                        }
                     }
                 } else if mediaCaptureManager.showingCapturedMedia {
                     if let image = mediaCaptureManager.capturedImage {
@@ -50,8 +60,8 @@ struct AddPostView: View {
                             .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                        // Video player - 9:16 aspect ratio için optimize edilmiş
-                        VideoPlayerView(
+                        // Video player - Custom video player kullan
+                        CustomVideoPlayerView(
                             videoURL: videoURL,
                             videoId: "captured_video",
                             isVisible: true

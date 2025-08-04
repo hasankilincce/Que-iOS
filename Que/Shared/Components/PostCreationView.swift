@@ -21,7 +21,7 @@ struct PostCreationView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                VideoPlayerView(
+                CustomVideoPlayerView(
                     videoURL: videoURL,
                     videoId: "post_creation_video",
                     isVisible: true
