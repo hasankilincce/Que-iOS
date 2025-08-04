@@ -76,8 +76,9 @@ struct VideoFeedPostView: View {
                         .ignoresSafeArea(.all)
                 }
                 
-                // Enhanced overlay gradients
+                // Gradients overlay
                 FeedPostGradients(screenSize: geometry.size)
+                    .zIndex(20000) // UI elementlerinin en üstte görünmesi için
                 
                 // Content overlay with improved animations
                 FeedPostOverlay(
@@ -94,6 +95,7 @@ struct VideoFeedPostView: View {
                         }
                     }
                 )
+                .zIndex(20000) // UI elementlerinin en üstte görünmesi için
                 
                 // Double-tap like animation
                 if showLikeAnimation {
@@ -103,6 +105,7 @@ struct VideoFeedPostView: View {
                         .opacity(showLikeAnimation ? 1 : 0)
                         .scaleEffect(showLikeAnimation ? 1.2 : 0.5)
                         .animation(.spring(response: 0.4, dampingFraction: 0.6), value: showLikeAnimation)
+                        .zIndex(20000) // UI elementlerinin en üstte görünmesi için
                 }
                 
                 // Long press areas for video posts
@@ -125,7 +128,7 @@ struct VideoFeedPostView: View {
                                 toggleVideoPlayback()
                             }
                             .allowsHitTesting(true) // Long press için true
-                            .zIndex(10000) // En üstte görünmesi için
+                            .zIndex(1000) // UI elementlerinin altında kalması için
                         
                         // Middle area (no long press)
                         Rectangle()
@@ -150,7 +153,7 @@ struct VideoFeedPostView: View {
                                 toggleVideoPlayback()
                             }
                             .allowsHitTesting(true) // Long press için true
-                            .zIndex(10000) // En üstte görünmesi için
+                            .zIndex(1000) // UI elementlerinin altında kalması için
                     }
                 }
             }
@@ -203,6 +206,9 @@ struct VideoFeedPostView: View {
             print("🎬 Video Feed: \(side) side long press started for post: \(post.id)")
             isLongPressing = true
             
+            // Set video speed to 2x
+            setVideoSpeed(2.0)
+            
             // Start timer for continuous logging
             longPressTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
                 print("🎬 Video Feed: \(side) side long press continuing for post: \(post.id)")
@@ -213,6 +219,19 @@ struct VideoFeedPostView: View {
             isLongPressing = false
             longPressTimer?.invalidate()
             longPressTimer = nil
+            
+            // Reset video speed to 1x
+            setVideoSpeed(1.0)
+        }
+    }
+    
+    private func setVideoSpeed(_ speed: Float) {
+        let videoId = "\(post.id)_video"
+        if let player = CustomVideoOrchestrator.shared.getPlayer(id: videoId) {
+            player.setPlaybackRate(speed)
+            print("🎬 Video Feed: Video speed set to \(speed)x for post: \(post.id)")
+        } else {
+            print("🎬 Video Feed: Player not found for video ID: \(videoId)")
         }
     }
     

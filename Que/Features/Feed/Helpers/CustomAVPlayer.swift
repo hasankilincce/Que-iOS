@@ -95,6 +95,13 @@ class CustomAVPlayer: NSObject, ObservableObject {
         return player
     }
     
+    func setPlaybackRate(_ rate: Float) {
+        guard let player = player else { return }
+        
+        player.rate = rate
+        print("🎬 CustomAVPlayer: Playback rate set to \(rate)x for player ID: \(playerId)")
+    }
+    
     func cleanup() {
         print("🎬 CustomAVPlayer: Cleaning up player with ID: \(playerId)")
         
@@ -297,6 +304,17 @@ class CustomAVPlayer: NSObject, ObservableObject {
     
     @objc private func playerItemDidReachEnd() {
         print("🎬 CustomAVPlayer: Video reached end, restarting")
+        
+        // Mevcut hızı sakla
+        let currentRate = player?.rate ?? 1.0
+        print("🎬 CustomAVPlayer: Saving current rate: \(currentRate)")
+        
         restart()
+        
+        // Loop sonrası hızı geri yükle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.setPlaybackRate(currentRate)
+            print("🎬 CustomAVPlayer: Restored rate after loop: \(currentRate)")
+        }
     }
 } 
