@@ -188,6 +188,7 @@ struct FeedPostOverlay: View {
                                     .animation(.spring(response: 0.3, dampingFraction: 0.5), value: post.isLiked)
                             }
                         }
+                        .allowsHitTesting(true) // Sadece buton alanında tap çalışsın
                         
                         Text("\(post.likesCount)")
                             .font(.system(size: 12, weight: .bold))
@@ -204,6 +205,7 @@ struct FeedPostOverlay: View {
                                     .foregroundColor(.white)
                             }
                         }
+                        .allowsHitTesting(true) // Sadece buton alanında tap çalışsın
                         
                         Text("—")
                             .font(.system(size: 12, weight: .bold))
@@ -220,6 +222,7 @@ struct FeedPostOverlay: View {
                                     .foregroundColor(.white)
                             }
                         }
+                        .allowsHitTesting(true) // Sadece buton alanında tap çalışsın
                         
                         Text("\(post.commentsCount)")
                             .font(.system(size: 12, weight: .bold))
@@ -236,6 +239,7 @@ struct FeedPostOverlay: View {
                                     .foregroundColor(.white)
                             }
                         }
+                        .allowsHitTesting(true) // Sadece buton alanında tap çalışsın
                         
                         Text("Paylaş")
                             .font(.system(size: 10, weight: .bold))

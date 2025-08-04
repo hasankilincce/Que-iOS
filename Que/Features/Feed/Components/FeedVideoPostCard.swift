@@ -4,58 +4,27 @@ import SwiftUI
 struct VideoPostView: View {
     let url: URL
     let videoId: String
-    @StateObject private var videoManager = FeedVideoPlayerController()
+    @StateObject private var videoWrapper = VideoSystemWrapper.shared
     
     var body: some View {
         ZStack {
-            if let player = videoManager.getPlayer() {
-                VideoPlayer(player: player)
-                    .aspectRatio(9/16, contentMode: .fill) // FILL MODE: tam ekran, letterbox yok
-                    .frame(maxWidth: .infinity)
-                    .background(Color.black) // Siyah arka plan letterbox effect için
-                    .cornerRadius(12)
-                    .overlay(
-                        // Stall indicator
-                        Group {
-                            if videoManager.isStalled {
-                                VStack {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                        .scaleEffect(1.2)
-                                    Text("Video yükleniyor...")
-                                        .font(.caption)
-                                        .foregroundColor(.white)
-                                        .padding(.top, 8)
-                                }
-                                .padding()
-                                .background(Color.black.opacity(0.6))
-                                .cornerRadius(8)
-                            }
-                        }
-                    )
-            } else {
-                // Loading state - BackgroundImageView ile aynı boyut
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemGray6))
-                    .aspectRatio(9/16, contentMode: .fit) // BackgroundImageView ile aynı: fit mode
-                    .frame(maxWidth: .infinity)
-                    .background(Color.black) // BackgroundImageView ile aynı: siyah arka plan
-                    .overlay(
-                        VStack {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .gray))
-                                .scaleEffect(1.2)
-                            Text("Video hazırlanıyor...")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                                .padding(.top, 8)
-                        }
-                    )
-            }
+            // Custom video player kullan
+            videoWrapper.createVideoPlayer(
+                url: url,
+                videoId: videoId,
+                isVisible: true
+            )
+            .aspectRatio(9/16, contentMode: .fill) // FILL MODE: tam ekran, letterbox yok
+            .frame(maxWidth: .infinity)
+            .background(Color.black) // Siyah arka plan letterbox effect için
+            .cornerRadius(12)
         }
         .onAppear { 
             print("🎬 VideoPostView: onAppear for videoId: \(videoId)")
             print("🎬 VideoPostView: URL: \(url)")
+            
+            // Custom video system'i aktif et
+            videoWrapper.useCustomSystem = true
             
             // Video boyutlarını kontrol et
             let asset = AVURLAsset(url: url)
@@ -71,11 +40,6 @@ struct VideoPostView: View {
                     }
                 }
             }
-            
-            videoManager.prepareVideo(url: url)
-        }
-        .onDisappear { 
-            videoManager.release()
         }
     }
 } 

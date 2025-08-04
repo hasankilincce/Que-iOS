@@ -1,15 +1,14 @@
 import SwiftUI
 import SDWebImageSwiftUI
 
-// MARK: - Video Feed Post View (Enhanced UX)
-struct VideoFeedPostView: View {
+// MARK: - Custom Video Feed Post View (Enhanced UX)
+struct CustomVideoFeedPostView: View {
     let post: Post
     let screenSize: CGSize
     let onLike: () -> Void
     let isVisible: Bool
     @State private var showLikeAnimation = false
     @State private var isDoubleTapped = false
-    @StateObject private var videoWrapper = VideoSystemWrapper.shared
     
     var body: some View {
         GeometryReader { geometry in
@@ -24,8 +23,8 @@ struct VideoFeedPostView: View {
                     let publicVideoURL = FeedVideoCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
                     
                     if let videoURL = URL(string: publicVideoURL) {
-                        // Video background for full screen - Custom system kullan
-                        videoWrapper.createFullScreenVideoPlayer(
+                        // Video background for full screen
+                        CustomFullScreenVideoPlayerView(
                             videoURL: publicVideoURL,
                             videoId: "\(post.id)_video",
                             isVisible: isVisible
@@ -117,10 +116,7 @@ struct VideoFeedPostView: View {
                 impactFeedback.impactOccurred()
             }
         }
-        .onAppear {
-            // Custom video system'i aktif et
-            videoWrapper.useCustomSystem = true
-        }
+        .allowsHitTesting(false) // Ana view'ın tap gesture'ı video player'ı engellemesin
     }
     
     private func triggerLikeAnimation() {

@@ -106,46 +106,46 @@ class FeedViewModel: ObservableObject {
             loadPersonalizedFeed()
         } else {
             // Standart feed: Kullanıcının takip ettiği kişilerin gönderilerini + kendi gönderilerini getir
-            listener = db.collection("posts")
-                .order(by: "createdAt", descending: true)
-                .limit(to: postsPerPage)
-                .addSnapshotListener { [weak self] snapshot, error in
+        listener = db.collection("posts")
+            .order(by: "createdAt", descending: true)
+            .limit(to: postsPerPage)
+            .addSnapshotListener { [weak self] snapshot, error in
                     Task { @MainActor in
-                    guard let self = self else { return }
-                    
-                    if let error = error {
-                        self.isLoading = false
-                        self.errorMessage = error.localizedDescription
-                        return
+                guard let self = self else { return }
+                
+                if let error = error {
+                    self.isLoading = false
+                    self.errorMessage = error.localizedDescription
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else { 
+                    self.isLoading = false
+                    return 
+                }
+                
+                let loadedPosts = documents.compactMap { doc in
+                    Post(id: doc.documentID, data: doc.data())
+                }
+                
+                // Duplicate post'ları filtrele
+                var uniquePosts: [Post] = []
+                var seenIds = Set<String>()
+                
+                for post in loadedPosts {
+                    if !seenIds.contains(post.id) {
+                        uniquePosts.append(post)
+                        seenIds.insert(post.id)
                     }
-                    
-                    guard let documents = snapshot?.documents else { 
-                        self.isLoading = false
-                        return 
-                    }
-                    
-                    let loadedPosts = documents.compactMap { doc in
-                        Post(id: doc.documentID, data: doc.data())
-                    }
-                    
-                    // Duplicate post'ları filtrele
-                    var uniquePosts: [Post] = []
-                    var seenIds = Set<String>()
-                    
-                    for post in loadedPosts {
-                        if !seenIds.contains(post.id) {
-                            uniquePosts.append(post)
-                            seenIds.insert(post.id)
-                        }
-                    }
-                    
+                }
+                
                     // Sadece ilk yüklemede beğeni durumlarını kontrol et
                     if self.posts.isEmpty {
                         Task {
                             let postsWithLikeStates = await self.updateLikeStates(for: uniquePosts)
                             
                             await MainActor.run {
-                                withAnimation(.easeInOut(duration: 0.3)) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
                                     self.posts = postsWithLikeStates
                                     self.isLoading = false
                                     self.showSkeleton = false
@@ -155,16 +155,16 @@ class FeedViewModel: ObservableObject {
                     } else {
                         // Mevcut beğeni durumlarını koru
                         await MainActor.run {
-                            self.isLoading = false
-                            self.showSkeleton = false
-                        }
-                    }
-                    
-                    self.lastDocument = documents.last
-                    self.hasMorePosts = documents.count == self.postsPerPage
+                        self.isLoading = false
+                        self.showSkeleton = false
                     }
                 }
-        }
+                
+                self.lastDocument = documents.last
+                self.hasMorePosts = documents.count == self.postsPerPage
+                    }
+                }
+            }
     }
     
     // Refresh (pull to refresh)
@@ -267,12 +267,12 @@ class FeedViewModel: ObservableObject {
                                 self.posts.append(newPost)
                             }
                         }
-                        
-                        // Bellek yönetimi
-                        self.trimPosts()
-                        
-                        self.lastDocument = documents.last
-                        self.hasMorePosts = documents.count == self.postsPerPage
+                
+                // Bellek yönetimi
+                self.trimPosts()
+                
+                self.lastDocument = documents.last
+                self.hasMorePosts = documents.count == self.postsPerPage
                     }
                 }
             }
@@ -318,7 +318,7 @@ class FeedViewModel: ObservableObject {
         // Firebase Functions ile like toggle
         Task {
             do {
-                let functions = Functions.functions(region: "us-east1")
+        let functions = Functions.functions(region: "us-east1")
                 let data: [String: Any] = [
                     "postId": post.id,
                     "userId": currentUserId,
@@ -327,7 +327,7 @@ class FeedViewModel: ObservableObject {
                 
                 let result = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<HTTPSCallableResult, Error>) in
                     functions.httpsCallable("toggleLike").call(data) { result, error in
-                        if let error = error {
+            if let error = error {
                             continuation.resume(throwing: error)
                         } else if let result = result {
                             continuation.resume(returning: result)

@@ -34,5 +34,6 @@ struct FeedPostGradients: View {
             .frame(height: screenSize.height * 0.5)
         }
         .ignoresSafeArea()
+        .allowsHitTesting(false) // Tap gesture'ı engellemesin
     }
 } 

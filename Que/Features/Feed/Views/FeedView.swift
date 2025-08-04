@@ -42,7 +42,7 @@ struct FeedView: View {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                     .padding()
-                                    .onAppear {
+                                .onAppear {
                                         viewModel.loadMorePosts()
                                     }
                             }
@@ -58,14 +58,14 @@ struct FeedView: View {
                     VStack {
                         Text("Hata")
                             .font(.headline)
-                            .foregroundColor(.white)
+                                .foregroundColor(.white)
                         Text(errorMessage)
                             .font(.caption)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
                     }
-                    .padding()
-                    .background(Color.red.opacity(0.8))
+                                .padding()
+                                .background(Color.red.opacity(0.8))
                     .cornerRadius(10)
                     .padding()
                 }
