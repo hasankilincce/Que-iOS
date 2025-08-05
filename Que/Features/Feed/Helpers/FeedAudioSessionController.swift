@@ -20,12 +20,13 @@ class FeedAudioSessionController {
             // .interruptSpokenAudioAndMixWithOthers seçeneği bildirim çubuğunda görünmeyi engeller
             try audioSession.setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetooth, .allowBluetoothA2DP, .interruptSpokenAudioAndMixWithOthers])
             
-            // Audio session'ı aktif et (sadece gerekirse)
-            if !audioSession.isOtherAudioPlaying {
+            // Audio session zaten aktifse setActive çağrısını atla - error -50'yi önle
+            if !audioSession.isOtherAudioPlaying && !audioSession.isInputAvailable {
                 try audioSession.setActive(true)
+                DebugLogger.logSuccess("Audio session activated for video playback")
+            } else {
+                DebugLogger.logInfo("Audio session already active, skipping setActive call")
             }
-            
-            DebugLogger.logSuccess("Audio session configured for video playback")
             
         } catch {
             // Error -50 normal bir durum, audio session zaten aktif

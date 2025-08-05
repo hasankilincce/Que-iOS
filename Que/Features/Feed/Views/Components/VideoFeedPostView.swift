@@ -41,9 +41,16 @@ struct VideoFeedPostView: View {
                         .clipped()
                         .ignoresSafeArea(.all)
                         .onAppear {
-                            // Video player referansını al
-                            if let orchestrator = CustomVideoOrchestrator.shared.getPlayer(id: "\(post.id)_video") {
-                                videoPlayerRef = orchestrator
+                            // Önce mevcut player'ı kontrol et - yeniden kullan
+                            let videoId = "\(post.id)_video"
+                            if let existingPlayer = CustomVideoOrchestrator.shared.getPlayer(id: videoId) {
+                                videoPlayerRef = existingPlayer
+                                print("🎬 Video Feed: Reusing existing player for post: \(post.id)")
+                            } else {
+                                // Video player referansını al
+                                if let orchestrator = CustomVideoOrchestrator.shared.getPlayer(id: videoId) {
+                                    videoPlayerRef = orchestrator
+                                }
                             }
                             
                             // Prefetch next video
@@ -98,7 +105,7 @@ struct VideoFeedPostView: View {
                     post: post,
                     screenSize: geometry.size,
                     onLike: {
-                        // Sadece beğenme durumunda animasyon göster
+                        // Beğeni butonuna tıklandığında her zaman çalışır (beğenme/geri çekme)
                         let wasLiked = post.isLiked
                         onLike()
                         
@@ -218,12 +225,12 @@ struct VideoFeedPostView: View {
         .clipped()
         .ignoresSafeArea(.all)
         .onTapGesture(count: 2) {
-            // Double tap to like - sadece beğenme durumunda animasyon
+            // Double tap to like - sadece beğenme durumunda çalışır
             let wasLiked = post.isLiked
-            onLike()
             
-            // Sadece beğenme durumunda animasyon ve haptic feedback
+            // Sadece beğenilmemiş durumda beğen
             if !wasLiked {
+                onLike()
                 triggerLikeAnimation()
                 
                 // Haptic feedback
