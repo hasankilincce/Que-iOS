@@ -23,7 +23,7 @@ class CustomAVPlayer: NSObject, ObservableObject {
     private var loadedTimeRangesObserver: NSKeyValueObservation?
     
     // MARK: - Configuration
-    private let preferredForwardBufferDuration: TimeInterval = 6.0
+    private let preferredForwardBufferDuration: TimeInterval = 0.0 // Apple'ın adaptif buffer davranışını kullan
     private let preferredPeakBitRate: Double = 2_000_000 // 2 Mbps
     
     // MARK: - Public Interface
@@ -183,7 +183,13 @@ class CustomAVPlayer: NSObject, ObservableObject {
         
         // Buffer & bit-rate ayarları
         item.preferredForwardBufferDuration = preferredForwardBufferDuration
-        item.preferredPeakBitRate = preferredPeakBitRate
+        
+        // Dinamik bit-rate ayarı - ağ hızına göre
+        let networkSpeed = getNetworkSpeed()
+        let dynamicBitRate = calculateOptimalBitRate(for: networkSpeed)
+        item.preferredPeakBitRate = dynamicBitRate
+        
+        print("🎬 CustomAVPlayer: Network speed: \(networkSpeed) Mbps, Bit rate: \(dynamicBitRate/1_000_000) Mbps")
         
         let newPlayer = AVPlayer(playerItem: item)
         newPlayer.automaticallyWaitsToMinimizeStalling = false
@@ -215,10 +221,17 @@ class CustomAVPlayer: NSObject, ObservableObject {
             }
         }
         
-        // Stall monitoring
+        // Stall monitoring ve yükleme göstergesi
         stallObserver = item.observe(\.isPlaybackLikelyToKeepUp, options: [.new]) { [weak self] playerItem, _ in
             DispatchQueue.main.async {
-                self?.isStalled = !playerItem.isPlaybackLikelyToKeepUp
+                let isLikelyToKeepUp = playerItem.isPlaybackLikelyToKeepUp
+                self?.isStalled = !isLikelyToKeepUp
+                
+                // Yükleme tamamlandığında loading state'ini güncelle
+                if isLikelyToKeepUp && self?.isLoading == true {
+                    self?.isLoading = false
+                    print("🎬 CustomAVPlayer: Playback likely to keep up, loading complete")
+                }
             }
         }
         
@@ -285,6 +298,12 @@ class CustomAVPlayer: NSObject, ObservableObject {
             isReady = true
             hasError = false
             errorMessage = nil
+            
+            // Hazır olur olmaz hemen oynat
+            if let player = player {
+                player.playImmediately(atRate: 1.0)
+                print("🎬 CustomAVPlayer: Playing immediately at rate 1.0")
+            }
         case .failed:
             print("❌ CustomAVPlayer: Video failed to load")
             isLoading = false
@@ -321,5 +340,24 @@ class CustomAVPlayer: NSObject, ObservableObject {
             self?.setPlaybackRate(currentRate)
             print("🎬 CustomAVPlayer: Restored rate after loop: \(currentRate)")
         }
+    }
+    
+    // MARK: - Network Optimization
+    private func getNetworkSpeed() -> Double {
+        // Basit ağ hızı tahmini - gerçek uygulamada daha sofistike olabilir
+        // Şimdilik sabit değer kullanıyoruz, ileride gerçek ağ hızı ölçümü eklenebilir
+        return 5.0 // 5 Mbps varsayılan
+    }
+    
+    private func calculateOptimalBitRate(for networkSpeed: Double) -> Double {
+        // Ağ hızına göre optimal bit-rate hesapla
+        // Ağ hızının %80'ini kullan (buffer için %20 bırak)
+        let optimalBitRate = networkSpeed * 0.8 * 1_000_000 // Mbps to bps
+        
+        // Minimum 500kbps, maksimum 2Mbps
+        let minBitRate: Double = 500_000
+        let maxBitRate: Double = 2_000_000
+        
+        return max(minBitRate, min(optimalBitRate, maxBitRate))
     }
 } 

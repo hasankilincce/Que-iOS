@@ -209,8 +209,9 @@ class FeedViewModel: ObservableObject {
         let config = FeedVideoCacheManager.shared.getURLSessionConfiguration()
         let session = URLSession(configuration: config)
         
-        // Video'nun ilk 10 saniyesini indir
-        let prefetchRequest = URLRequest(url: url)
+        // Video'nun ilk 2-3 saniyesini indir (daha agresif prefetch)
+        var prefetchRequest = URLRequest(url: url)
+        prefetchRequest.timeoutInterval = 5.0 // 5 saniye timeout
         
         let task = session.dataTask(with: prefetchRequest) { [weak self] data, response, error in
             if let error = error {
