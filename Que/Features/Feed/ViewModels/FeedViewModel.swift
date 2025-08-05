@@ -194,7 +194,7 @@ class FeedViewModel: ObservableObject {
         return uniquePosts
     }
     
-    // Video prefetch - görünen post'tan sonraki video'yu önceden yükle
+    // Video prefetch - görünen post'tan sonraki video'yu önceden yükle (sessiz)
     func prefetchNextVideo(for currentPost: Post) {
         guard let currentIndex = posts.firstIndex(where: { $0.id == currentPost.id }),
               currentIndex + 1 < posts.count else { return }
@@ -205,7 +205,18 @@ class FeedViewModel: ObservableObject {
         
         print("🎬 Prefetching next video: \(nextPost.id)")
         
-        // URLSession ile prefetch
+        // Sessiz prefetch player oluştur (otomatik oynatma yok)
+        let prefetchPlayerId = "\(nextPost.id)_prefetch"
+        let prefetchPlayer = CustomAVPlayer()
+        prefetchPlayer.prepareVideo(url: url, playerId: prefetchPlayerId)
+        
+        // Player'ı sessiz yap
+        if let avPlayer = prefetchPlayer.getPlayer() {
+            avPlayer.isMuted = true
+            print("🎬 FeedViewModel: Created silent prefetch player for: \(nextPost.id)")
+        }
+        
+        // URLSession ile prefetch (cache için)
         let config = FeedVideoCacheManager.shared.getURLSessionConfiguration()
         let session = URLSession(configuration: config)
         

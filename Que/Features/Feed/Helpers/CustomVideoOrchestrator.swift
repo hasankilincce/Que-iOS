@@ -15,11 +15,17 @@ class CustomVideoOrchestrator: ObservableObject {
     
     // MARK: - Public Methods
     
-    // Video oynatmayı başlat
+    // Video oynatmayı başlat - isReady kontrolü ile
     func playVideo(id: String, player: CustomAVPlayer) {
         // Önceki videoyu durdur
         if let currentId = currentPlayingVideoId, currentId != id {
             pauseVideo(id: currentId)
+        }
+        
+        // Player hazır mı kontrol et
+        guard player.isReady else {
+            print("🎬 CustomVideoOrchestrator: Player not ready for ID: \(id), waiting...")
+            return
         }
         
         // Media kontrollerini yapılandır (bildirim çubuğunda görünmeyi engelle)
@@ -28,7 +34,10 @@ class CustomVideoOrchestrator: ObservableObject {
         // Yeni videoyu oynat
         currentPlayingVideoId = id
         customPlayers[id] = player
+        
+        // Player'ı başlat
         player.play()
+        print("🎬 CustomVideoOrchestrator: Started playback for video ID: \(id)")
         
         DebugLogger.logVideo("CustomVideoOrchestrator: Playing video with ID: \(id)")
         DebugLogger.logAudio("Video should play with sound even in silent mode")
@@ -87,7 +96,30 @@ class CustomVideoOrchestrator: ObservableObject {
     // Custom player'ı kaydet
     func registerPlayer(id: String, player: CustomAVPlayer) {
         customPlayers[id] = player
+        
+        // Player hazır olduğunda otomatik başlat
+        player.$isReady
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isReady in
+                if isReady {
+                    self?.autoPlayVideo(id: id, player: player)
+                }
+            }
+            .store(in: &cancellables)
+        
         DebugLogger.logVideo("CustomVideoOrchestrator: Registered player with ID: \(id)")
+    }
+    
+    // Otomatik oynatma
+    private func autoPlayVideo(id: String, player: CustomAVPlayer) {
+        // Eğer bu video zaten oynatılıyorsa veya başka bir video oynatılıyorsa işlem yapma
+        if currentPlayingVideoId == id || (currentPlayingVideoId != nil && currentPlayingVideoId != id) {
+            return
+        }
+        
+        // Video'yu otomatik başlat
+        playVideo(id: id, player: player)
+        print("🎬 CustomVideoOrchestrator: Auto-playing video with ID: \(id)")
     }
     
     // Custom player'ı al

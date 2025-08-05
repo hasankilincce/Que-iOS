@@ -29,6 +29,10 @@ class CustomAVPlayer: NSObject, ObservableObject {
     // MARK: - Public Interface
     var playerId: String = ""
     
+    // Otomatik oynatma için
+    private var shouldAutoPlay = true
+    private var wasPlayingBeforeLoad = false
+    
     // MARK: - Initialization
     override init() {
         super.init()
@@ -49,6 +53,9 @@ class CustomAVPlayer: NSObject, ObservableObject {
         isReady = false
         hasError = false
         errorMessage = nil
+        
+        // Yükleme öncesi oynatma durumunu kaydet
+        wasPlayingBeforeLoad = isPlaying
         
         // Audio session'ı hazırla
         FeedAudioSessionController.shared.prepareAudioSessionForVideo()
@@ -299,10 +306,20 @@ class CustomAVPlayer: NSObject, ObservableObject {
             hasError = false
             errorMessage = nil
             
-            // Hazır olur olmaz hemen oynat
-            if let player = player {
-                player.playImmediately(atRate: 1.0)
-                print("🎬 CustomAVPlayer: Playing immediately at rate 1.0")
+            // Otomatik oynatma aktifse hemen başlat
+            if shouldAutoPlay {
+                DispatchQueue.main.async { [weak self] in
+                    self?.play()
+                    print("🎬 CustomAVPlayer: Auto-playing video with ID: \(self?.playerId ?? "")")
+                }
+            } else if wasPlayingBeforeLoad {
+                // Yükleme öncesi oynatılıyorsa devam et
+                DispatchQueue.main.async { [weak self] in
+                    self?.play()
+                    print("🎬 CustomAVPlayer: Resuming playback after load for ID: \(self?.playerId ?? "")")
+                }
+            } else {
+                print("🎬 CustomAVPlayer: Player ready, waiting for orchestrator to start playback")
             }
         case .failed:
             print("❌ CustomAVPlayer: Video failed to load")
@@ -328,6 +345,9 @@ class CustomAVPlayer: NSObject, ObservableObject {
     
     @objc private func playerItemDidReachEnd() {
         print("🎬 CustomAVPlayer: Video reached end, restarting")
+        
+        // Video bittiğinde isPlaying false yap
+        isPlaying = false
         
         // Mevcut hızı sakla
         let currentRate = player?.rate ?? 1.0

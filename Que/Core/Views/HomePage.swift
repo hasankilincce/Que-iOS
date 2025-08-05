@@ -9,6 +9,11 @@ struct HomePage: View {
                 switch viewModel.selectedTab {
                 case .home:
                     FullScreenFeedView(viewModel: viewModel.feedViewModel)
+                        .onDisappear {
+                            // Feed'den çıkarken tüm video player'ları temizle
+                            CustomVideoOrchestrator.shared.cleanupAllPlayers()
+                            print("🎬 HomePage: Cleaned up all video players when leaving feed")
+                        }
                 case .explore:
                     ExploreView(viewModel: viewModel.exploreViewModel, selectedUserId: $viewModel.selectedUserId, isSearching: $viewModel.isExploreSearching)
                 case .add:

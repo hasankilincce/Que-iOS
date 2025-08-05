@@ -139,7 +139,7 @@ struct CustomFullScreenVideoPlayerControls: View {
                     .allowsHitTesting(false) // Disable default controls but allow tap gesture
                 
                 // Play Icon Animation when video is paused
-                if !isPlaying && showPlayIcon {
+                if showPlayIcon {
                     ZStack {
                         // Play icon - sadece icon, circle yok
                         Image(systemName: "play.fill")
@@ -166,12 +166,8 @@ struct CustomFullScreenVideoPlayerControls: View {
         .onReceive(customPlayer.$isPlaying) { playing in
             isPlaying = playing
             
-            // Show play icon animation when video is paused
-            if !playing {
-                showPlayIcon = true
-            } else {
-                showPlayIcon = false
-            }
+            // Show play icon only when video is paused
+            showPlayIcon = !playing
         }
     }
     

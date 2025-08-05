@@ -15,40 +15,36 @@ class VideoSystemWrapper: ObservableObject {
     
     func createVideoPlayer(url: URL, videoId: String, isVisible: Bool) -> some View {
         return AnyView(
-            CustomVideoPlayerView(
-                videoURL: url,
+            SharedVideoPlayerView(
                 videoId: videoId,
-                isVisible: isVisible
+                videoURL: url
             )
         )
     }
     
     func createFullScreenVideoPlayer(videoURL: String, videoId: String, isVisible: Bool) -> some View {
         return AnyView(
-            CustomFullScreenVideoPlayerView(
-                videoURL: videoURL,
+            SharedFullScreenVideoPlayerView(
                 videoId: videoId,
-                isVisible: isVisible
+                videoURL: URL(string: videoURL) ?? URL(string: "https://example.com")!
             )
         )
     }
     
     func createBackgroundVideoPlayer(videoURL: String, videoId: String, isVisible: Bool) -> some View {
         return AnyView(
-            CustomFullScreenVideoPlayerView(
-                videoURL: videoURL,
+            SharedFullScreenVideoPlayerView(
                 videoId: videoId,
-                isVisible: isVisible
+                videoURL: URL(string: videoURL) ?? URL(string: "https://example.com")!
             )
         )
     }
     
     func createVideoPostCard(url: URL, videoId: String) -> some View {
         return AnyView(
-            CustomVideoPlayerView(
-                videoURL: url,
+            SharedVideoPlayerView(
                 videoId: videoId,
-                isVisible: true
+                videoURL: url
             )
         )
     }
