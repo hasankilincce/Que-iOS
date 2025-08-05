@@ -223,8 +223,91 @@ class RecommendationEngine: ObservableObject {
     // MARK: - Helper Methods
     
     private func fetchPosts() async -> [Post] {
-        // Firestore'dan post'ları çek
-        return [] // Placeholder
+        guard let userId = Auth.auth().currentUser?.uid else { return [] }
+        
+        do {
+            // 1. Kullanıcının takip ettiği kişilerin post'larını getir
+            let followingPosts = await fetchFollowingPosts(userId: userId)
+            
+            // 2. Genel akıştan son N post'u getir
+            let generalPosts = await fetchGeneralPosts()
+            
+            // 3. Post'ları birleştir ve duplicate'ları kaldır
+            var allPosts = followingPosts + generalPosts
+            let uniquePosts = removeDuplicates(from: allPosts)
+            
+            // 4. Post'ları tarihe göre sırala
+            return uniquePosts.sorted { $0.createdAt > $1.createdAt }
+            
+        } catch {
+            print("❌ Error fetching posts: \(error)")
+            return []
+        }
+    }
+    
+    private func fetchFollowingPosts(userId: String) async -> [Post] {
+        do {
+            // Kullanıcının takip ettiği kişileri al
+            let userDoc = try await db.collection("users").document(userId).getDocument()
+            guard let userData = userDoc.data(),
+                  let followingIds = userData["following"] as? [String] else {
+                return []
+            }
+            
+            // Takip edilen kişilerin son post'larını getir
+            var followingPosts: [Post] = []
+            
+            for followingId in followingIds.prefix(20) { // En fazla 20 kişi
+                let postsQuery = db.collection("posts")
+                    .whereField("userId", isEqualTo: followingId)
+                    .order(by: "createdAt", descending: true)
+                    .limit(to: 5) // Her kişiden en fazla 5 post
+                
+                let snapshot = try await postsQuery.getDocuments()
+                let posts = snapshot.documents.compactMap { doc in
+                    Post(id: doc.documentID, data: doc.data())
+                }
+                followingPosts.append(contentsOf: posts)
+            }
+            
+            return followingPosts
+            
+        } catch {
+            print("❌ Error fetching following posts: \(error)")
+            return []
+        }
+    }
+    
+    private func fetchGeneralPosts() async -> [Post] {
+        do {
+            // Genel akıştan son 50 post'u getir
+            let snapshot = try await db.collection("posts")
+                .order(by: "createdAt", descending: true)
+                .limit(to: 50)
+                .getDocuments()
+            
+            return snapshot.documents.compactMap { doc in
+                Post(id: doc.documentID, data: doc.data())
+            }
+            
+        } catch {
+            print("❌ Error fetching general posts: \(error)")
+            return []
+        }
+    }
+    
+    private func removeDuplicates(from posts: [Post]) -> [Post] {
+        var uniquePosts: [Post] = []
+        var seenIds = Set<String>()
+        
+        for post in posts {
+            if !seenIds.contains(post.id) {
+                uniquePosts.append(post)
+                seenIds.insert(post.id)
+            }
+        }
+        
+        return uniquePosts
     }
     
     private func getInteractionScore(userId: String, postId: String) -> Double {

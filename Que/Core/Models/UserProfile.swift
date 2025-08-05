@@ -71,8 +71,8 @@ struct UserPreferences: Codable {
     
     // Real-time personalization settings
     var qualityThreshold: Double = 0.5
-    var minEngagementThreshold: Int = 0
-    var preferredContentTypes: [String] = []
+    var minEngagement: Int = 0
+    var allowedContentTypes: [String] = []
     var interactionHistory: [UserInteraction] = []
     var realTimeScoringEnabled: Bool = true
     var adaptiveThreshold: Bool = true
@@ -102,8 +102,8 @@ struct UserPreferences: Codable {
         
         // Real-time personalization settings
         self.qualityThreshold = data["qualityThreshold"] as? Double ?? 0.5
-        self.minEngagementThreshold = data["minEngagementThreshold"] as? Int ?? 0
-        self.preferredContentTypes = data["preferredContentTypes"] as? [String] ?? []
+        self.minEngagement = data["minEngagement"] as? Int ?? 0
+        self.allowedContentTypes = data["allowedContentTypes"] as? [String] ?? []
         self.realTimeScoringEnabled = data["realTimeScoringEnabled"] as? Bool ?? true
         self.adaptiveThreshold = data["adaptiveThreshold"] as? Bool ?? true
         self.learningRate = data["learningRate"] as? Double ?? 0.1

@@ -113,7 +113,7 @@ class RealTimePersonalizationEngine: ObservableObject {
     }
     
     private func calculateContentTypeScore(post: Post) -> Double {
-        let userPreferredTypes = userPreferences.preferredContentTypes
+        let userPreferredTypes = userPreferences.allowedContentTypes
         
         if userPreferredTypes.contains(post.mediaType ?? "unknown") {
             return 1.0
@@ -197,6 +197,53 @@ class RealTimePersonalizationEngine: ObservableObject {
         }
     }
     
+    private func calculatePreferenceScore(post: Post) -> Double {
+        // Check if post matches user's content preferences
+        var score: Double = 0.0
+        
+        // Video preference
+        if post.hasBackgroundVideo && userPreferences.showVideos {
+            score += 0.4
+        }
+        
+        // Image preference
+        if post.hasBackgroundImage && userPreferences.showImages {
+            score += 0.3
+        }
+        
+        // Question preference
+        if post.isQuestion && userPreferences.showQuestions {
+            score += 0.3
+        }
+        
+        return min(score, 1.0)
+    }
+    
+    private func calculateBehaviorScore(post: Post) -> Double {
+        // Analyze recent user behavior patterns
+        let recentInteractions = userPreferences.interactionHistory
+            .filter { Date().timeIntervalSince($0.timestamp) < 3600 } // Last hour
+        
+        let positiveInteractions = recentInteractions.filter { $0.interactionType == .like || $0.interactionType == .share }.count
+        let totalInteractions = recentInteractions.count
+        
+        if totalInteractions == 0 {
+            return 0.5 // Neutral score if no recent interactions
+        }
+        
+        let positiveRatio = Double(positiveInteractions) / Double(totalInteractions)
+        
+        // If user is in a positive mood (high positive ratio), show more engaging content
+        if positiveRatio > 0.7 {
+            return post.likesCount > 10 ? 1.0 : 0.6
+        } else if positiveRatio < 0.3 {
+            // If user is in a negative mood, show safer content
+            return post.likesCount < 50 ? 1.0 : 0.4
+        } else {
+            return 0.7 // Neutral behavior
+        }
+    }
+    
     // MARK: - Dynamic Filtering
     
     func applyRealTimeFilters(to posts: [Post]) -> [Post] {
@@ -229,11 +276,11 @@ class RealTimePersonalizationEngine: ObservableObject {
         ))
         
         // Content type filter
-        if !userPreferences.preferredContentTypes.isEmpty {
+        if !userPreferences.allowedContentTypes.isEmpty {
             filters.append(RealTimeContentFilter(
                 name: "content_type",
                 type: .contentType,
-                allowedTypes: userPreferences.preferredContentTypes
+                allowedTypes: userPreferences.allowedContentTypes
             ))
         }
         
@@ -241,7 +288,7 @@ class RealTimePersonalizationEngine: ObservableObject {
         filters.append(RealTimeContentFilter(
             name: "engagement",
             type: .engagement,
-            minEngagement: userPreferences.minEngagementThreshold
+            minEngagement: userPreferences.minEngagement
         ))
         
         return filters
@@ -311,6 +358,8 @@ class RealTimePersonalizationEngine: ObservableObject {
             }
         }
     }
+    
+
 }
 
 // MARK: - Supporting Models

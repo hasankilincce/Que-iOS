@@ -136,8 +136,13 @@ class CustomAVPlayer: NSObject, ObservableObject {
     private func loadAsset(url: URL) {
         // HLS Asset + network cache with custom configuration
         let config = FeedVideoCacheManager.shared.getURLSessionConfiguration()
+        
+        // URLSession ile cache'i kullan
+        let session = URLSession(configuration: config)
         let asset = AVURLAsset(url: url, options: [
-            "AVURLAssetHTTPHeaderFieldsKey": config.httpAdditionalHeaders ?? [:]
+            "AVURLAssetHTTPHeaderFieldsKey": config.httpAdditionalHeaders ?? [:],
+            "AVURLAssetOutOfBandMIMETypeKey": "video/mp4",
+            "AVURLAssetUsesNoPersistentCacheKey": false
         ])
         
         // Asset loading'i iyileştir

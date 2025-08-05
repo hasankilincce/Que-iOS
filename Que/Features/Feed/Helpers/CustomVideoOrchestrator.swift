@@ -61,6 +61,11 @@ class CustomVideoOrchestrator: ObservableObject {
         DebugLogger.logVideo("CustomVideoOrchestrator: Removed video with ID: \(id)")
     }
     
+    // Alias for removeVideo (for consistency)
+    func removePlayer(id: String) {
+        removeVideo(id: id)
+    }
+    
     // Tüm videoları durdur
     func pauseAllVideos() {
         for (id, player) in customPlayers {

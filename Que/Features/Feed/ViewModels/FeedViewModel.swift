@@ -15,30 +15,37 @@ class FeedViewModel: ObservableObject {
         posts[index] = updatedPost
     }
     
-    // Kullanıcının beğeni durumlarını güncelle
-    private func updateLikeStates(for posts: [Post]) async -> [Post] {
+    // Kullanıcının beğeni durumlarını toplu olarak güncelle
+    private func updateLikeStatesBatch(for posts: [Post]) async -> [Post] {
         guard let currentUserId = Auth.auth().currentUser?.uid else { return posts }
         
-        // Firestore'dan kullanıcının beğeni durumlarını al
         let db = Firestore.firestore()
         var updatedPosts = posts
         
-        for (index, post) in updatedPosts.enumerated() {
-            do {
-                let likeDoc = try await db.collection("likes")
-                    .document("\(currentUserId)_\(post.id)")
-                    .getDocument()
-                
-                if likeDoc.exists {
-                    // Kullanıcı bu post'u beğenmiş
-                    updatedPosts[index].isLiked = true
-                } else {
-                    // Kullanıcı bu post'u beğenmemiş
-                    updatedPosts[index].isLiked = false
-                }
-            } catch {
-                print("❌ Error checking like state for post \(post.id): \(error)")
-                // Hata durumunda varsayılan olarak beğenmemiş kabul et
+        // Tüm post'lar için like document ID'lerini hazırla
+        let likeDocumentIds = posts.map { "\(currentUserId)_\($0.id)" }
+        
+        do {
+            // Toplu sorgu ile beğeni durumlarını al
+            let likeDocs = try await db.collection("likes")
+                .whereField(FieldPath.documentID(), in: likeDocumentIds)
+                .getDocuments()
+            
+            // Mevcut like document'larını Set'e çevir
+            let existingLikeIds = Set(likeDocs.documents.map { $0.documentID })
+            
+            // Her post için beğeni durumunu kontrol et
+            for (index, post) in updatedPosts.enumerated() {
+                let likeDocId = "\(currentUserId)_\(post.id)"
+                updatedPosts[index].isLiked = existingLikeIds.contains(likeDocId)
+            }
+            
+            print("✅ Batch like states updated for \(posts.count) posts")
+            
+        } catch {
+            print("❌ Error checking batch like states: \(error)")
+            // Hata durumunda varsayılan olarak beğenmemiş kabul et
+            for index in updatedPosts.indices {
                 updatedPosts[index].isLiked = false
             }
         }
@@ -70,8 +77,8 @@ class FeedViewModel: ObservableObject {
     let mlFunctions = FirebaseMLFunctions.shared
     
     init() {
-        loadFeed()
         setupPersonalization()
+        loadFeed()
     }
     
     private func setupPersonalization() {
@@ -92,12 +99,15 @@ class FeedViewModel: ObservableObject {
         listener?.remove()
     }
     
-    // Ana feed'i yükle (realtime)
+    // Ana feed'i yükle (one-time)
     func loadFeed() {
         guard (Auth.auth().currentUser?.uid) != nil else { return }
         
         isLoading = true
         errorMessage = nil
+        
+        // Mevcut listener'ı temizle
+        listener?.remove()
         
         let db = Firestore.firestore()
         
@@ -106,65 +116,50 @@ class FeedViewModel: ObservableObject {
             loadPersonalizedFeed()
         } else {
             // Standart feed: Kullanıcının takip ettiği kişilerin gönderilerini + kendi gönderilerini getir
-        listener = db.collection("posts")
-            .order(by: "createdAt", descending: true)
-            .limit(to: postsPerPage)
-            .addSnapshotListener { [weak self] snapshot, error in
-                    Task { @MainActor in
-                guard let self = self else { return }
-                
-                if let error = error {
-                    self.isLoading = false
-                    self.errorMessage = error.localizedDescription
-                    return
-                }
-                
-                guard let documents = snapshot?.documents else { 
-                    self.isLoading = false
-                    return 
-                }
-                
-                let loadedPosts = documents.compactMap { doc in
-                    Post(id: doc.documentID, data: doc.data())
-                }
-                
-                // Duplicate post'ları filtrele
-                var uniquePosts: [Post] = []
-                var seenIds = Set<String>()
-                
-                for post in loadedPosts {
-                    if !seenIds.contains(post.id) {
-                        uniquePosts.append(post)
-                        seenIds.insert(post.id)
-                    }
-                }
-                
-                    // Sadece ilk yüklemede beğeni durumlarını kontrol et
-                    if self.posts.isEmpty {
+            Task {
+                do {
+                    let query = db.collection("posts")
+                        .order(by: "createdAt", descending: true)
+                        .limit(to: postsPerPage)
+                    
+                    let snapshot = try await query.getDocuments()
+                    
+                    await MainActor.run {
+                        let loadedPosts = snapshot.documents.compactMap { doc in
+                            Post(id: doc.documentID, data: doc.data())
+                        }
+                        
+                        // Duplicate post'ları filtrele
+                        let uniquePosts = self.removeDuplicates(from: loadedPosts)
+                        
+                        // Beğeni durumlarını toplu olarak güncelle
                         Task {
-                            let postsWithLikeStates = await self.updateLikeStates(for: uniquePosts)
+                            let postsWithLikeStates = await self.updateLikeStatesBatch(for: uniquePosts)
                             
                             await MainActor.run {
-                    withAnimation(.easeInOut(duration: 0.3)) {
+                                withAnimation(.easeInOut(duration: 0.3)) {
                                     self.posts = postsWithLikeStates
                                     self.isLoading = false
                                     self.showSkeleton = false
                                 }
+                                
+                                self.lastDocument = snapshot.documents.last
+                                self.hasMorePosts = snapshot.documents.count == self.postsPerPage
+                                
+                                print("✅ Feed loaded: \(postsWithLikeStates.count) posts")
                             }
                         }
-                    } else {
-                        // Mevcut beğeni durumlarını koru
-                        await MainActor.run {
-                        self.isLoading = false
-                        self.showSkeleton = false
                     }
-                }
-                
-                self.lastDocument = documents.last
-                self.hasMorePosts = documents.count == self.postsPerPage
+                    
+                } catch {
+                    await MainActor.run {
+                        self.isLoading = false
+                        self.errorMessage = error.localizedDescription
+                        print("❌ Error loading feed: \(error)")
                     }
                 }
             }
+        }
     }
     
     // Refresh (pull to refresh)
@@ -184,33 +179,74 @@ class FeedViewModel: ObservableObject {
         isRefreshing = false
     }
     
+    // Duplicate post'ları filtrele
+    private func removeDuplicates(from posts: [Post]) -> [Post] {
+        var uniquePosts: [Post] = []
+        var seenIds = Set<String>()
+        
+        for post in posts {
+            if !seenIds.contains(post.id) {
+                uniquePosts.append(post)
+                seenIds.insert(post.id)
+            }
+        }
+        
+        return uniquePosts
+    }
+    
     // Video prefetch - görünen post'tan sonraki video'yu önceden yükle
     func prefetchNextVideo(for currentPost: Post) {
-        guard let currentIndex = posts.firstIndex(where: { $0.id == currentPost.id }) else { return }
-        let nextIndex = currentIndex + 1
+        guard let currentIndex = posts.firstIndex(where: { $0.id == currentPost.id }),
+              currentIndex + 1 < posts.count else { return }
         
-        guard nextIndex < posts.count else { return }
-        let nextPost = posts[nextIndex]
+        let nextPost = posts[currentIndex + 1]
+        guard let videoURL = nextPost.backgroundVideoURL,
+              let url = URL(string: videoURL) else { return }
         
-        guard nextPost.hasBackgroundVideo,
-            let signedVideoURL = nextPost.backgroundVideoURL else { return }
+        print("🎬 Prefetching next video: \(nextPost.id)")
         
-        let publicVideoURL = FeedVideoCacheManager.shared.convertSignedURLToPublic(signedVideoURL)
-        guard !prefetchedVideos.contains(publicVideoURL) else { return }
+        // URLSession ile prefetch
+        let config = FeedVideoCacheManager.shared.getURLSessionConfiguration()
+        let session = URLSession(configuration: config)
         
-        // Video'yu prefetch et
-        prefetchedVideos.insert(publicVideoURL)
+        // Video'nun ilk 10 saniyesini indir
+        let prefetchRequest = URLRequest(url: url)
         
-        // AVPlayerItem oluştur (sadece metadata yükle)
-        if let url = URL(string: publicVideoURL) {
-            let asset = AVURLAsset(url: url)
-            let item = AVPlayerItem(asset: asset)
+        let task = session.dataTask(with: prefetchRequest) { [weak self] data, response, error in
+            if let error = error {
+                print("❌ Prefetch error: \(error.localizedDescription)")
+                return
+            }
             
-            // Sadece metadata yükle, video'yu oynatma
-            item.preferredForwardBufferDuration = 0
-            item.preferredPeakBitRate = 0
-            
-            print("🎬 Prefetching video: \(publicVideoURL)")
+            if let httpResponse = response as? HTTPURLResponse,
+               httpResponse.statusCode == 200 {
+                print("✅ Prefetch successful for video: \(nextPost.id)")
+                
+                // AVPlayerItem cache'ine ekle
+                DispatchQueue.main.async {
+                    self?.addToPlayerCache(videoURL: url, data: data)
+                }
+            } else {
+                print("❌ Prefetch failed for video: \(nextPost.id)")
+            }
+        }
+        
+        task.resume()
+    }
+    
+    // AVPlayerItem cache'ine video ekle
+    private func addToPlayerCache(videoURL: URL, data: Data?) {
+        guard let data = data else { return }
+        
+        // Temporary file oluştur
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempFile = tempDir.appendingPathComponent("\(videoURL.lastPathComponent)_prefetch")
+        
+        do {
+            try data.write(to: tempFile)
+            print("✅ Prefetch data written to cache: \(tempFile)")
+        } catch {
+            print("❌ Failed to write prefetch data: \(error)")
         }
     }
     
@@ -232,50 +268,60 @@ class FeedViewModel: ObservableObject {
     func loadMorePosts() {
         guard !isLoading, hasMorePosts, let lastDoc = lastDocument else { return }
         
+        isLoading = true
+        
         let db = Firestore.firestore()
         
-        db.collection("posts")
-            .order(by: "createdAt", descending: true)
-            .start(afterDocument: lastDoc)
-            .limit(to: postsPerPage)
-            .getDocuments { [weak self] snapshot, error in
-                guard let self = self else { return }
+        Task {
+            do {
+                let query = db.collection("posts")
+                    .order(by: "createdAt", descending: true)
+                    .start(afterDocument: lastDoc)
+                    .limit(to: postsPerPage)
                 
-                if let error = error {
-                    self.errorMessage = error.localizedDescription
-                    return
-                }
+                let snapshot = try await query.getDocuments()
                 
-                guard let documents = snapshot?.documents else { return }
-                
-                let newPosts = documents.compactMap { doc in
-                    Post(id: doc.documentID, data: doc.data())
-                }
-                
-                // Duplicate post'ları filtrele
-                let existingIds = Set(self.posts.map { $0.id })
-                let uniqueNewPosts = newPosts.filter { !existingIds.contains($0.id) }
-                
-                // Yeni post'ların beğeni durumlarını kontrol et
-                Task {
-                    let postsWithLikeStates = await self.updateLikeStates(for: uniqueNewPosts)
+                await MainActor.run {
+                    let newPosts = snapshot.documents.compactMap { doc in
+                        Post(id: doc.documentID, data: doc.data())
+                    }
                     
-                    await MainActor.run {
-                        // Mevcut beğeni durumlarını koruyarak yeni post'ları ekle
-                        for newPost in postsWithLikeStates {
-                            if !self.posts.contains(where: { $0.id == newPost.id }) {
-                                self.posts.append(newPost)
+                    // Duplicate post'ları filtrele
+                    let existingIds = Set(self.posts.map { $0.id })
+                    let uniqueNewPosts = newPosts.filter { !existingIds.contains($0.id) }
+                    
+                    // Yeni post'ların beğeni durumlarını toplu olarak kontrol et
+                    Task {
+                        let postsWithLikeStates = await self.updateLikeStatesBatch(for: uniqueNewPosts)
+                        
+                        await MainActor.run {
+                            // Mevcut beğeni durumlarını koruyarak yeni post'ları ekle
+                            for newPost in postsWithLikeStates {
+                                if !self.posts.contains(where: { $0.id == newPost.id }) {
+                                    self.posts.append(newPost)
+                                }
                             }
+                            
+                            // Bellek yönetimi
+                            self.trimPosts()
+                            
+                            self.lastDocument = snapshot.documents.last
+                            self.hasMorePosts = snapshot.documents.count == self.postsPerPage
+                            self.isLoading = false
+                            
+                            print("✅ More posts loaded: \(postsWithLikeStates.count) new posts")
                         }
-                
-                // Bellek yönetimi
-                self.trimPosts()
-                
-                self.lastDocument = documents.last
-                self.hasMorePosts = documents.count == self.postsPerPage
                     }
                 }
+                
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
+                    self.errorMessage = error.localizedDescription
+                    print("❌ Error loading more posts: \(error)")
+                }
             }
+        }
     }
     
     // Post'u beğen/beğenme
@@ -394,20 +440,33 @@ class FeedViewModel: ObservableObject {
     
     private func loadPersonalizedFeed() {
         Task {
+            // 1. RecommendationEngine'den kişiselleştirilmiş post'ları al
             let personalizedPosts = await recommendationEngine.getPersonalizedPosts()
             
             await MainActor.run {
-                // Real-time filtering uygula
+                // 2. RealTimePersonalizationEngine ile filtrele
                 let realTimeFilteredPosts = realTimeEngine.applyRealTimeFilters(to: personalizedPosts)
                 
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    self.posts = realTimeFilteredPosts
-                    self.isLoading = false
-                    self.showSkeleton = false
-                }
+                // 3. Duplicate post'ları filtrele
+                let uniquePosts = self.removeDuplicates(from: realTimeFilteredPosts)
                 
-                // Preload scores for better performance
-                realTimeEngine.preloadScores(for: realTimeFilteredPosts)
+                // 4. Beğeni durumlarını toplu olarak güncelle
+                Task {
+                    let postsWithLikeStates = await self.updateLikeStatesBatch(for: uniquePosts)
+                    
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            self.posts = postsWithLikeStates
+                            self.isLoading = false
+                            self.showSkeleton = false
+                        }
+                        
+                        // 5. Performance için skorları önceden yükle
+                        realTimeEngine.preloadScores(for: postsWithLikeStates)
+                        
+                        print("✅ Personalized feed loaded: \(postsWithLikeStates.count) posts")
+                    }
+                }
             }
         }
     }

@@ -35,6 +35,18 @@ struct CustomVideoFeedPostView: View {
                         )
                         .clipped()
                         .ignoresSafeArea(.all)
+                        .onAppear {
+                            // Prefetch next video
+                            if let feedViewModel = getFeedViewModel() {
+                                feedViewModel.prefetchNextVideo(for: post)
+                            }
+                        }
+                        .onDisappear {
+                            // Video'yu tamamen kaldır
+                            let videoId = "\(post.id)_video"
+                            CustomVideoOrchestrator.shared.removePlayer(id: videoId)
+                            print("🎬 CustomVideoFeedPostView: Video removed on disappear for post: \(post.id)")
+                        }
                     }
                 } else if post.mediaType == "image", let imageURL = post.mediaURL, let url = URL(string: imageURL) {
                     WebImage(url: url)
@@ -129,5 +141,12 @@ struct CustomVideoFeedPostView: View {
                 showLikeAnimation = false
             }
         }
+    }
+    
+    // FeedViewModel'e erişim için helper fonksiyon
+    private func getFeedViewModel() -> FeedViewModel? {
+        // Environment'dan FeedViewModel'i al
+        // Bu fonksiyon FeedView'da kullanılacak
+        return nil // Şimdilik nil, FeedView'da implement edilecek
     }
 } 
