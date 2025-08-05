@@ -36,12 +36,6 @@ struct CustomVideoFeedPostView: View {
                         .clipped()
                         .ignoresSafeArea(.all)
                         .onAppear {
-                            // Önce mevcut player'ı kontrol et - yeniden kullan
-                            let videoId = "\(post.id)_video"
-                            if let existingPlayer = CustomVideoOrchestrator.shared.getPlayer(id: videoId) {
-                                print("🎬 CustomVideoFeedPostView: Reusing existing player for post: \(post.id)")
-                            }
-                            
                             // Prefetch next video
                             if let feedViewModel = getFeedViewModel() {
                                 feedViewModel.prefetchNextVideo(for: post)
@@ -92,7 +86,7 @@ struct CustomVideoFeedPostView: View {
                     post: post,
                     screenSize: geometry.size,
                     onLike: {
-                        // Beğeni butonuna tıklandığında her zaman çalışır (beğenme/geri çekme)
+                        // Sadece beğenme durumunda animasyon göster
                         let wasLiked = post.isLiked
                         onLike()
                         
@@ -121,12 +115,12 @@ struct CustomVideoFeedPostView: View {
         .clipped()
         .ignoresSafeArea(.all)
         .onTapGesture(count: 2) {
-            // Double tap to like - sadece beğenme durumunda çalışır
+            // Double tap to like - sadece beğenme durumunda animasyon
             let wasLiked = post.isLiked
+            onLike()
             
-            // Sadece beğenilmemiş durumda beğen
+            // Sadece beğenme durumunda animasyon ve haptic feedback
             if !wasLiked {
-                onLike()
                 triggerLikeAnimation()
                 
                 // Haptic feedback

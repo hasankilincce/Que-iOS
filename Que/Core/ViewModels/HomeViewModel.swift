@@ -31,9 +31,12 @@ class HomeViewModel: ObservableObject {
                 resetExplore()
             }
         case .home:
-            // Home'a tıklanınca sadece manuel yenileme için refresh et
-            // Otomatik refresh kaldırıldı - performans optimizasyonu
-            break
+            // Home'a tıklanınca feed'i refresh et
+            if previousTab == .home {
+                Task {
+                    await feedViewModel.refresh()
+                }
+            }
         case .add:
             // Add post modalını aç
             break
