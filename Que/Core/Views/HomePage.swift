@@ -8,12 +8,18 @@ struct HomePage: View {
             Group {
                 switch viewModel.selectedTab {
                 case .home:
-                    FullScreenFeedView(viewModel: viewModel.feedViewModel)
-                        .onDisappear {
-                            // Feed'den çıkarken tüm video player'ları temizle
-                            CustomVideoOrchestrator.shared.cleanupAllPlayers()
-                            print("🎬 HomePage: Cleaned up all video players when leaving feed")
-                        }
+                    // Feed removed - placeholder view
+                    VStack {
+                        Text("Feed Removed")
+                            .font(.title)
+                            .foregroundColor(.secondary)
+                        Text("Feed functionality has been removed from the app")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .explore:
                     ExploreView(viewModel: viewModel.exploreViewModel, selectedUserId: $viewModel.selectedUserId, isSearching: $viewModel.isExploreSearching)
                 case .add:

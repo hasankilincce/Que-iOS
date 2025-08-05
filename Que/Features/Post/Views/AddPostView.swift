@@ -39,16 +39,21 @@ struct AddPostView: View {
                                 .background(Color.black)
                                 .ignoresSafeArea(.all, edges: .all)
                         } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                            // Video player - Custom video player kullan
-                            CustomVideoPlayerView(
-                                videoURL: videoURL,
-                                videoId: "captured_video",
-                                isVisible: true
-                            )
-                                .aspectRatio(9/16, contentMode: .fit) // 9:16 aspect ratio
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(Color.black)
-                                .ignoresSafeArea(.all, edges: .all)
+                            // Video player removed - placeholder view
+                            VStack {
+                                Image(systemName: "video.fill")
+                                    .font(.system(size: 48))
+                                    .foregroundColor(.white)
+                                Text("Video Preview")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                Text("Video player functionality removed")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.black)
+                            .ignoresSafeArea(.all, edges: .all)
                         }
                     }
                 } else if mediaCaptureManager.showingCapturedMedia {
@@ -60,16 +65,21 @@ struct AddPostView: View {
                             .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                        // Video player - Custom video player kullan
-                        CustomVideoPlayerView(
-                            videoURL: videoURL,
-                            videoId: "captured_video",
-                            isVisible: true
-                        )
-                            .aspectRatio(9/16, contentMode: .fit) // 9:16 aspect ratio
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.black)
-                            .ignoresSafeArea(.all, edges: .all)
+                        // Video player removed - placeholder view
+                        VStack {
+                            Image(systemName: "video.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(.white)
+                            Text("Video Preview")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            Text("Video player functionality removed")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black)
+                        .ignoresSafeArea(.all, edges: .all)
                     }
                 } else if cameraManager.cameraPermissionGranted && cameraManager.cameraSessionReady {
                     LiveCameraView(session: cameraManager.cameraSession)

@@ -10,7 +10,6 @@ class HomeViewModel: ObservableObject {
     
     // Sub-ViewModels
     @Published var exploreViewModel = ExploreViewModel()
-    @Published var feedViewModel = FeedViewModel()
     @Published var addPostViewModel = AddPostViewModel()
     @Published var notificationBadgeViewModel = NotificationBadgeViewModel()
     
@@ -31,12 +30,8 @@ class HomeViewModel: ObservableObject {
                 resetExplore()
             }
         case .home:
-            // Home'a tıklanınca feed'i refresh et
-            if previousTab == .home {
-                Task {
-                    await feedViewModel.refresh()
-                }
-            }
+            // Home tab functionality removed
+            break
         case .add:
             // Add post modalını aç
             break

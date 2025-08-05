@@ -21,14 +21,20 @@ struct PostCreationView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                CustomVideoPlayerView(
-                    videoURL: videoURL,
-                    videoId: "post_creation_video",
-                    isVisible: true
-                )
-                .aspectRatio(contentMode: .fill)
+                // Video player removed - placeholder view
+                VStack {
+                    Image(systemName: "video.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(.white)
+                    Text("Video Preview")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Text("Video player functionality removed")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
+                .background(Color.black.opacity(0.5))
             } else {
                 LinearGradient(
                     gradient: Gradient(colors: [
@@ -252,8 +258,7 @@ struct PostCreationView: View {
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
                 
-                // Overlay gradients
-                FeedPostGradients(screenSize: geometry.size)
+                // Overlay gradients removed
                 
                 // Content - Feed style layout
                 VStack(spacing: 0) {
