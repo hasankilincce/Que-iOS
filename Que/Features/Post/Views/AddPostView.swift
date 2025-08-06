@@ -21,7 +21,7 @@ struct AddPostView: View {
                     .ignoresSafeArea(.all, edges: .all)
                 // Background - either live camera, captured media, or post creation
                 if showingPostCreation {
-                    // Post creation background
+                    // Post creation background - video player'ı kaldır, sadece image göster
                     if let image = mediaCaptureManager.capturedImage {
                         Image(uiImage: image)
                             .resizable()
@@ -30,31 +30,9 @@ struct AddPostView: View {
                             .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                        // Post creation background
-                        if let image = mediaCaptureManager.capturedImage {
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(9/16, contentMode: .fit)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(Color.black)
-                                .ignoresSafeArea(.all, edges: .all)
-                        } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                            // Video player removed - placeholder view
-                            VStack {
-                                Image(systemName: "video.fill")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.white)
-                                Text("Video Preview")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                Text("Video player functionality removed")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.black)
+                        // Video için sadece siyah background göster, player'ı kaldır
+                        Color.black
                             .ignoresSafeArea(.all, edges: .all)
-                        }
                     }
                 } else if mediaCaptureManager.showingCapturedMedia {
                     if let image = mediaCaptureManager.capturedImage {
@@ -65,21 +43,12 @@ struct AddPostView: View {
                             .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                        // Video player removed - placeholder view
-                        VStack {
-                            Image(systemName: "video.fill")
-                                .font(.system(size: 48))
-                                .foregroundColor(.white)
-                            Text("Video Preview")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                            Text("Video player functionality removed")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black)
-                        .ignoresSafeArea(.all, edges: .all)
+                        // Custom Video Player
+                        CustomVideoPlayerView(videoURL: videoURL)
+                            .aspectRatio(9/16, contentMode: .fit)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.black)
+                            .ignoresSafeArea(.all, edges: .all)
                     }
                 } else if cameraManager.cameraPermissionGranted && cameraManager.cameraSessionReady {
                     LiveCameraView(session: cameraManager.cameraSession)

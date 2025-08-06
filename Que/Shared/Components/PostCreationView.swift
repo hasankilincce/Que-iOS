@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct PostCreationView: View {
     @ObservedObject var viewModel: AddPostViewModel
@@ -21,20 +22,19 @@ struct PostCreationView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                // Video player removed - placeholder view
-                VStack {
-                    Image(systemName: "video.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(.white)
-                    Text("Video Preview")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    Text("Video player functionality removed")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black.opacity(0.5))
+                // Custom Video Player
+                CustomVideoPlayerView(videoURL: videoURL)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.opacity(0.5))
+                    .onAppear {
+                        // PostCreationView açıldığında ses ayarlarını kontrol et
+                        do {
+                            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+                            try AVAudioSession.sharedInstance().setActive(true)
+                        } catch {
+                            print("PostCreationView ses ayarları hatası: \(error)")
+                        }
+                    }
             } else {
                 LinearGradient(
                     gradient: Gradient(colors: [

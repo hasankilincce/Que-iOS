@@ -27,13 +27,16 @@ Que/
 │   │   ├── RegisterViewModel.swift
 │   │   ├── ResetPasswordPage.swift
 │   │   └── ResetPasswordViewModel.swift
-│   │
-│   ├── Feed/                      # Ana akış
-│   │   ├── FeedView.swift
-│   │   ├── FeedViewModel.swift
-│   │   └── FullScreenFeedView.swift
-│   │
-│   ├── Profile/                   # Profil yönetimi
+│   ├── Explore/                   # Keşfet
+│   │   ├── ExploreView.swift
+│   │   └── ExploreViewModel.swift
+│   ├── Notifications/             # Bildirimler
+│   │   ├── NotificationsView.swift
+│   │   └── NotificationBadgeViewModel.swift
+│   ├── Post/                      # Post oluşturma
+│   │   ├── AddPostView.swift
+│   │   └── AddPostViewModel.swift
+│   ├── Profile/                   # Profil
 │   │   ├── ProfilePage.swift
 │   │   ├── ProfileViewModel.swift
 │   │   ├── EditProfilePage.swift
@@ -42,101 +45,122 @@ Que/
 │   │   ├── OnboardingProfileViewModel.swift
 │   │   ├── FollowersListPage.swift
 │   │   └── FollowsListPage.swift
-│   │
-│   ├── Explore/                   # Keşfet özelliği
-│   │   ├── ExploreView.swift
-│   │   └── ExploreViewModel.swift
-│   │
-│   ├── Notifications/             # Bildirimler
-│   │   ├── NotificationsView.swift
-│   │   └── NotificationBadgeViewModel.swift
-│   │
-│   ├── Post/                      # Gönderi oluşturma
-│   │   ├── AddPostView.swift
-│   │   └── AddPostViewModel.swift
-│   │
 │   └── Settings/                  # Ayarlar
 │       ├── SettingsPage.swift
 │       └── SettingsViewModel.swift
 │
-└── Shared/                        # Paylaşılan bileşenler
-    ├── Components/                # Yeniden kullanılabilir UI bileşenleri
-    │   ├── BackgroundVideoView.swift
-    │   ├── CameraOverlayView.swift
-    │   ├── CustomTabBar.swift
-    │   ├── FullScreenVideoPlayerView.swift
-    │   ├── LiveCameraView.swift
-    │   ├── NotificationSkeletonRow.swift
-    │   ├── PostCreationView.swift
-    │   ├── PostSkeletonView.swift
-    │   ├── ShimmerModifier.swift
-    │   ├── ShimmerView.swift
-    │   ├── VideoPlayerView.swift
-    │   └── VideoPostView.swift
-    │
-    ├── Helpers/                   # Yardımcı sınıflar
-    │   ├── AudioSessionManager.swift
-    │   ├── CameraManager.swift
-    │   ├── DebugLogger.swift
-    │   ├── ImageCompressionHelper.swift
-    │   ├── ImageCompressionTest.swift
-    │   ├── ImagePickerHelpers.swift
-    │   ├── MediaCaptureManager.swift
-    │   ├── MediaControlManager.swift
-    │   ├── URLCacheManager.swift
-    │   ├── VideoManager.swift
-    │   └── VideoPlayerManager.swift
-    │
-    └── Utilities/                 # Yardımcı araçlar (boş)
+├── Shared/                        # Paylaşılan bileşenler
+│   ├── Components/                # Yeniden kullanılabilir bileşenler
+│   │   ├── CameraOverlayView.swift
+│   │   ├── CustomTabBar.swift
+│   │   ├── CustomVideoPlayerView.swift
+│   │   ├── LiveCameraView.swift
+│   │   ├── NotificationSkeletonRow.swift
+│   │   └── PostCreationView.swift
+│   ├── Services/                  # Servisler
+│   │   ├── Media/                 # Medya servisleri
+│   │   ├── Network/               # Ağ servisleri
+│   │   └── Storage/               # Depolama servisleri
+│   ├── Utils/                     # Yardımcı araçlar
+│   │   ├── Constants/             # Sabitler
+│   │   ├── Extensions/            # Uzantılar
+│   │   ├── Helpers/               # Yardımcı fonksiyonlar
+│   │   ├── ImageProcessing/       # Görüntü işleme
+│   │   ├── Logging/               # Loglama
+│   │   └── MediaCapture/          # Medya yakalama
+│   └── UI/                        # UI bileşenleri
+│       ├── Components/            # UI bileşenleri
+│       ├── Modifiers/             # UI değiştiricileri
+│       └── Views/                 # UI görünümleri
+│
+└── Resources/                     # Kaynaklar
+    ├── Assets.xcassets/           # Görsel kaynaklar
+    └── GoogleService-Info.plist   # Firebase yapılandırması
 ```
 
-## 🎯 Organizasyon Prensipleri
+## 🎬 Video Player Geliştirmeleri
 
-### **Core/** 
-- Uygulamanın temel bileşenleri
-- Ana giriş noktası ve modeller
-- Tüm özellikler tarafından kullanılan ortak ViewModels
+### ✅ Son Güncellemeler (2024-08-06)
 
-### **Features/**
-- Her özellik kendi klasöründe
-- Her özellik kendi Views ve ViewModels'ini içerir
-- Modüler yapı sayesinde kolay bakım
+#### 1. **Echo Sorunu Çözümü**
+- **Problem**: PostCreationView'da video sesi echo yapıyordu
+- **Kök Neden**: AddPostView'da 2 adet video player aynı anda çalışıyordu
+- **Çözüm**: AddPostView'da `showingPostCreation = true` olduğunda background video player'ı kaldırıldı
 
-### **Shared/**
-- Tüm özellikler tarafından kullanılan bileşenler
-- Yeniden kullanılabilir UI bileşenleri
-- Yardımcı sınıflar ve araçlar
+#### 2. **Teknik Detaylar**
+```swift
+// ÖNCE (Echo sorunu)
+if showingPostCreation {
+    if let videoURL = mediaCaptureManager.capturedVideoURL {
+        CustomVideoPlayerView(videoURL: videoURL) // 1. PLAYER
+    }
+}
+// PostCreationView içinde de video player var
+// Toplam: 2 video player aynı anda çalışıyor
 
-## 🔄 Değişiklik Özeti
+// SONRA (Echo çözüldü)
+if showingPostCreation {
+    if let videoURL = mediaCaptureManager.capturedVideoURL {
+        Color.black // Sadece siyah background
+    }
+}
+// Sadece PostCreationView içindeki video player çalışıyor
+```
 
-✅ **Taşınan Dosyalar:**
-- Models → Core/Models
-- Ana ViewModels → Core/ViewModels  
-- HomePage → Core/Views
-- Auth ile ilgili dosyalar → Features/Auth
-- Feed ile ilgili dosyalar → Features/Feed
-- Profile ile ilgili dosyalar → Features/Profile
-- Explore ile ilgili dosyalar → Features/Explore
-- Notifications ile ilgili dosyalar → Features/Notifications
-- Post ile ilgili dosyalar → Features/Post
-- Settings ile ilgili dosyalar → Features/Settings
-- Components → Shared/Components
-- Helpers → Shared/Helpers
+#### 3. **AVKit Kontrolleri Keşfi**
+- **Keşfedilen Durum**: AVKit'in VideoPlayer'ı varsayılan kontroller gösteriyor
+- **Kontroller**: Play/Pause, 10s ileri/geri, progress bar, hız ayarı, ses ayarı, ekran paylaşma
+- **Çözüm**: UIViewRepresentable ile AVPlayerLayer kullanarak kontrolleri tamamen gizledik
 
-✅ **Temizlenen Klasörler:**
-- Eski Models, Views, ViewModels, Helpers klasörleri kaldırıldı
+#### 4. **Video Player Özellikleri**
+- ✅ **Otomatik video oynatma**
+- ✅ **Video loop**
+- ✅ **9:16 aspect ratio**
+- ✅ **Loading state**
+- ✅ **Dosya varlık kontrolü**
+- ✅ **Ses ayarları optimizasyonu**
+- ✅ **Memory management**
+- ✅ **Observer pattern düzgün implementasyonu**
 
-## 📈 Faydalar
+#### 5. **Build Kontrolü**
+- ✅ **Başarılı build**: `xcodebuild -project Que.xcodeproj -scheme Que -destination 'platform=iOS Simulator,name=iPhone 16' build`
+- ✅ **Hata yok**: Tüm syntax ve logic hataları düzeltildi
+- ✅ **Performans**: Video player optimize edildi
 
-1. **Modüler Yapı**: Her özellik kendi klasöründe
-2. **Kolay Navigasyon**: Dosyaları bulmak daha kolay
-3. **Ölçeklenebilirlik**: Yeni özellikler kolayca eklenebilir
-4. **Bakım Kolaylığı**: İlgili dosyalar bir arada
-5. **Takım Çalışması**: Farklı geliştiriciler farklı özellikler üzerinde çalışabilir
+### 📋 Önceki Güncellemeler
 
-## 🚀 Kullanım
+#### 1. **CustomVideoPlayerView.swift** - Özel Video Player
+- **Oluşturulma Tarihi**: 2024-08-06
+- **Özellikler**:
+  - Sadece Play/Pause butonu (kaldırıldı)
+  - Video loop özelliği
+  - 9:16 aspect ratio desteği
+  - Loading state gösterimi
+  - Auto-hide buton animasyonu
 
-Bu yapı sayesinde:
-- Yeni bir özellik eklemek için sadece Features/ altında yeni klasör oluşturun
-- Ortak bileşenler Shared/ altına ekleyin
-- Core/ altındaki dosyalar tüm uygulama için ortak 
+#### 2. **Observer Pattern** implementasyonu
+- **VideoPlayerObserver**: Video durumu takibi
+- **VideoPlayerManager**: ObservableObject yönetimi
+- **VideoPlayerManagerObserver**: Duration tracking
+
+#### 3. **Entegrasyon** tamamlandı
+- **AddPostView.swift**: Video preview
+- **PostCreationView.swift**: Video player
+
+#### 4. **Hata Düzeltmeleri**
+- Weak reference hataları çözüldü
+- UIViewRepresentable syntax hataları düzeltildi
+- AVAudioSession import sorunları çözüldü
+
+### 🎯 Sonuç
+- ✅ **Echo sorunu tamamen çözüldü**
+- ✅ **Video player stabil çalışıyor**
+- ✅ **Ses kalitesi optimize edildi**
+- ✅ **Memory leak'ler önlendi**
+- ✅ **Build başarılı**
+
+---
+
+## 📝 Notlar
+
+Bu klasör yapısı, uygulamanın modüler ve ölçeklenebilir olmasını sağlar. Her özellik kendi klasöründe organize edilmiştir ve paylaşılan bileşenler `Shared` klasöründe bulunmaktadır. 
