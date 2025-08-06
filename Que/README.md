@@ -27,140 +27,138 @@ Que/
 │   │   ├── RegisterViewModel.swift
 │   │   ├── ResetPasswordPage.swift
 │   │   └── ResetPasswordViewModel.swift
-│   ├── Explore/                   # Keşfet
-│   │   ├── ExploreView.swift
-│   │   └── ExploreViewModel.swift
-│   ├── Notifications/             # Bildirimler
-│   │   ├── NotificationsView.swift
-│   │   └── NotificationBadgeViewModel.swift
 │   ├── Post/                      # Post oluşturma
-│   │   ├── AddPostView.swift
-│   │   └── AddPostViewModel.swift
-│   ├── Profile/                   # Profil
-│   │   ├── ProfilePage.swift
-│   │   ├── ProfileViewModel.swift
-│   │   ├── EditProfilePage.swift
-│   │   ├── EditProfileViewModel.swift
-│   │   ├── OnboardingProfilePage.swift
-│   │   ├── OnboardingProfileViewModel.swift
-│   │   ├── FollowersListPage.swift
-│   │   └── FollowsListPage.swift
+│   │   ├── Views/
+│   │   │   └── AddPostView.swift
+│   │   └── ViewModels/
+│   │       └── AddPostViewModel.swift
+│   ├── Profile/                   # Profil yönetimi
+│   │   ├── Views/
+│   │   │   ├── ProfilePage.swift
+│   │   │   ├── EditProfilePage.swift
+│   │   │   ├── OnboardingProfilePage.swift
+│   │   │   ├── FollowersListPage.swift
+│   │   │   └── FollowsListPage.swift
+│   │   └── ViewModels/
+│   │       ├── ProfileViewModel.swift
+│   │       ├── EditProfileViewModel.swift
+│   │       └── OnboardingProfileViewModel.swift
+│   ├── Explore/                   # Keşfet
+│   │   ├── Views/
+│   │   │   └── ExploreView.swift
+│   │   └── ViewModels/
+│   │       └── ExploreViewModel.swift
+│   ├── Notifications/             # Bildirimler
+│   │   ├── Views/
+│   │   │   └── NotificationsView.swift
+│   │   └── ViewModels/
+│   │       └── NotificationBadgeViewModel.swift
 │   └── Settings/                  # Ayarlar
-│       ├── SettingsPage.swift
-│       └── SettingsViewModel.swift
+│       ├── Views/
+│       │   └── SettingsPage.swift
+│       └── ViewModels/
+│           └── SettingsViewModel.swift
 │
 ├── Shared/                        # Paylaşılan bileşenler
 │   ├── Components/                # Yeniden kullanılabilir bileşenler
-│   │   ├── CameraOverlayView.swift
 │   │   ├── CustomTabBar.swift
-│   │   ├── CustomVideoPlayerView.swift
+│   │   ├── PostCreationView.swift
+│   │   ├── CameraOverlayView.swift
 │   │   ├── LiveCameraView.swift
-│   │   ├── NotificationSkeletonRow.swift
-│   │   └── PostCreationView.swift
-│   ├── Services/                  # Servisler
-│   │   ├── Media/                 # Medya servisleri
-│   │   ├── Network/               # Ağ servisleri
-│   │   └── Storage/               # Depolama servisleri
-│   ├── Utils/                     # Yardımcı araçlar
-│   │   ├── Constants/             # Sabitler
-│   │   ├── Extensions/            # Uzantılar
-│   │   ├── Helpers/               # Yardımcı fonksiyonlar
-│   │   ├── ImageProcessing/       # Görüntü işleme
-│   │   ├── Logging/               # Loglama
-│   │   └── MediaCapture/          # Medya yakalama
-│   └── UI/                        # UI bileşenleri
-│       ├── Components/            # UI bileşenleri
-│       ├── Modifiers/             # UI değiştiricileri
-│       └── Views/                 # UI görünümleri
-│
-└── Resources/                     # Kaynaklar
-    ├── Assets.xcassets/           # Görsel kaynaklar
-    └── GoogleService-Info.plist   # Firebase yapılandırması
+│   │   ├── CustomVideoPlayerView.swift
+│   │   └── NotificationSkeletonRow.swift
+│   └── Utils/                     # Yardımcı araçlar
+│       ├── MediaCapture/
+│       │   ├── MediaCaptureManager.swift
+│       │   └── CameraManager.swift
+│       ├── ImageProcessing/
+│       │   ├── ImageCompressionHelper.swift
+│       │   └── ImagePickerHelpers.swift
+│       └── Logging/
+│           └── DebugLogger.swift
 ```
 
 ## 🎬 Video Player Geliştirmeleri
 
-### ✅ Son Güncellemeler (2024-08-06)
+### ✅ Tamamlanan Özellikler:
 
-#### 1. **Echo Sorunu Çözümü**
-- **Problem**: PostCreationView'da video sesi echo yapıyordu
-- **Kök Neden**: AddPostView'da 2 adet video player aynı anda çalışıyordu
-- **Çözüm**: AddPostView'da `showingPostCreation = true` olduğunda background video player'ı kaldırıldı
+#### 1. **Özel Video Player Oluşturma**
+- **CustomVideoPlayerView.swift**: Tamamen özel video player
+- **AVKit kontrolleri gizlendi**: Hiçbir varsayılan kontrol görünmüyor
+- **UIViewRepresentable**: AVPlayerLayer ile native performans
+- **9:16 aspect ratio**: Instagram Reels tarzı dikey format
 
-#### 2. **Teknik Detaylar**
+#### 2. **One Tap Play/Pause Özelliği**
+- **Tek tıkla kontrol**: Video alanına tıklayarak play/pause
+- **Animasyonlu ikon**: Kısa süreli play/pause ikonu gösterimi
+- **Otomatik gizleme**: 0.7 saniye sonra ikon kayboluyor
+- **Smooth animasyonlar**: Geçişler yumuşak
+
+#### 3. **Teknik Özellikler**
+- **AVPlayerLayer**: Native video rendering
+- **Memory management**: Düzgün temizleme
+- **Observer pattern**: Video durumu takibi
+- **Audio session**: Doğru ses yönetimi
+
+#### 4. **Echo Sorunu Çözümü**
+- **Kök neden**: AddPostView'da 2 adet video player
+- **Çözüm**: showingPostCreation = true olduğunda background player kaldırıldı
+- **Sonuç**: Sadece PostCreationView'da video player çalışıyor
+- **AVAudioSession**: Doğru ses ayarları
+
+#### 5. **Build Kontrolleri**
+- ✅ Tüm build hataları düzeltildi
+- ✅ PostCreationView syntax hataları çözüldü
+- ✅ CustomVideoPlayerViewContainer entegrasyonu
+- ✅ ZStack yapısı ile onTapGesture düzeltildi
+
+### 🔧 Teknik Detaylar:
+
+#### Video Player Yapısı:
 ```swift
-// ÖNCE (Echo sorunu)
-if showingPostCreation {
-    if let videoURL = mediaCaptureManager.capturedVideoURL {
-        CustomVideoPlayerView(videoURL: videoURL) // 1. PLAYER
-    }
+struct CustomVideoPlayerView: UIViewRepresentable {
+    let videoURL: URL
+    @Binding var isPlaying: Bool
+    @Binding var showIcon: Bool
+    @Binding var iconType: PlayPauseIconType
 }
-// PostCreationView içinde de video player var
-// Toplam: 2 video player aynı anda çalışıyor
-
-// SONRA (Echo çözüldü)
-if showingPostCreation {
-    if let videoURL = mediaCaptureManager.capturedVideoURL {
-        Color.black // Sadece siyah background
-    }
-}
-// Sadece PostCreationView içindeki video player çalışıyor
 ```
 
-#### 3. **AVKit Kontrolleri Keşfi**
-- **Keşfedilen Durum**: AVKit'in VideoPlayer'ı varsayılan kontroller gösteriyor
-- **Kontroller**: Play/Pause, 10s ileri/geri, progress bar, hız ayarı, ses ayarı, ekran paylaşma
-- **Çözüm**: UIViewRepresentable ile AVPlayerLayer kullanarak kontrolleri tamamen gizledik
+#### One Tap Kontrol:
+```swift
+.onTapGesture {
+    togglePlayPause()
+    showPlayPauseIcon()
+}
+```
 
-#### 4. **Video Player Özellikleri**
-- ✅ **Otomatik video oynatma**
-- ✅ **Video loop**
-- ✅ **9:16 aspect ratio**
-- ✅ **Loading state**
-- ✅ **Dosya varlık kontrolü**
-- ✅ **Ses ayarları optimizasyonu**
-- ✅ **Memory management**
-- ✅ **Observer pattern düzgün implementasyonu**
+#### Echo Çözümü:
+```swift
+// AddPostView'da background video player kaldırıldı
+if showingPostCreation {
+    // Sadece siyah background, video player yok
+} else {
+    // Normal video player
+}
+```
 
-#### 5. **Build Kontrolü**
-- ✅ **Başarılı build**: `xcodebuild -project Que.xcodeproj -scheme Que -destination 'platform=iOS Simulator,name=iPhone 16' build`
-- ✅ **Hata yok**: Tüm syntax ve logic hataları düzeltildi
-- ✅ **Performans**: Video player optimize edildi
+### 📱 Kullanım:
+1. Video çekildikten sonra önizleme sayfasında video oynatılıyor
+2. PostCreationView'da video üzerine tıklayarak play/pause yapılabiliyor
+3. Kısa süreli play/pause ikonu animasyonlu olarak görünüyor
+4. Echo sorunu tamamen çözüldü
 
-### 📋 Önceki Güncellemeler
-
-#### 1. **CustomVideoPlayerView.swift** - Özel Video Player
-- **Oluşturulma Tarihi**: 2024-08-06
-- **Özellikler**:
-  - Sadece Play/Pause butonu (kaldırıldı)
-  - Video loop özelliği
-  - 9:16 aspect ratio desteği
-  - Loading state gösterimi
-  - Auto-hide buton animasyonu
-
-#### 2. **Observer Pattern** implementasyonu
-- **VideoPlayerObserver**: Video durumu takibi
-- **VideoPlayerManager**: ObservableObject yönetimi
-- **VideoPlayerManagerObserver**: Duration tracking
-
-#### 3. **Entegrasyon** tamamlandı
-- **AddPostView.swift**: Video preview
-- **PostCreationView.swift**: Video player
-
-#### 4. **Hata Düzeltmeleri**
-- Weak reference hataları çözüldü
-- UIViewRepresentable syntax hataları düzeltildi
-- AVAudioSession import sorunları çözüldü
-
-### 🎯 Sonuç
-- ✅ **Echo sorunu tamamen çözüldü**
-- ✅ **Video player stabil çalışıyor**
-- ✅ **Ses kalitesi optimize edildi**
-- ✅ **Memory leak'ler önlendi**
-- ✅ **Build başarılı**
+### 🎯 Sonuç:
+- ✅ Özel video player başarıyla oluşturuldu
+- ✅ One tap play/pause özelliği eklendi
+- ✅ Echo sorunu çözüldü
+- ✅ Build başarılı
+- ✅ Tüm özellikler çalışıyor
 
 ---
 
-## 📝 Notlar
-
-Bu klasör yapısı, uygulamanın modüler ve ölçeklenebilir olmasını sağlar. Her özellik kendi klasöründe organize edilmiştir ve paylaşılan bileşenler `Shared` klasöründe bulunmaktadır. 
+## 📝 Notlar:
+- Video player tamamen özel ve AVKit kontrolleri gizli
+- One tap kontrolü sadece video alanında çalışıyor
+- Memory management düzgün yapılıyor
+- Ses ayarları optimize edildi 

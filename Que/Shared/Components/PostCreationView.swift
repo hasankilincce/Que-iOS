@@ -14,7 +14,7 @@ struct PostCreationView: View {
     
     // Computed properties to simplify the view
     private var backgroundView: some View {
-        Group {
+        ZStack {
             if let image = mediaCaptureManager.capturedImage {
                 Image(uiImage: image)
                     .resizable()
@@ -23,7 +23,7 @@ struct PostCreationView: View {
                     .clipped()
             } else if let videoURL = mediaCaptureManager.capturedVideoURL {
                 // Custom Video Player
-                CustomVideoPlayerView(videoURL: videoURL)
+                CustomVideoPlayerViewContainer(videoURL: videoURL)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color.black.opacity(0.5))
                     .onAppear {

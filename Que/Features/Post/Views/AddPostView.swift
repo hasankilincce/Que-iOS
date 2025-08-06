@@ -44,7 +44,7 @@ struct AddPostView: View {
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
                         // Custom Video Player
-                        CustomVideoPlayerView(videoURL: videoURL)
+                        CustomVideoPlayerViewContainer(videoURL: videoURL)
                             .aspectRatio(9/16, contentMode: .fit)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(Color.black)
