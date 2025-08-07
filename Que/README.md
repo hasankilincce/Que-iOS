@@ -50,6 +50,67 @@ Que/
 
 ## 📝 Değişiklik Geçmişi
 
+### 🖼️ Media Caching Sistemi - Tamamlandı!
+
+**Tarih:** 7 Ağustos 2025
+
+**Yapılan Değişiklikler:**
+
+1. **MediaCacheManager Oluşturuldu**
+   - `Que/Shared/Managers/MediaCacheManager.swift` dosyası oluşturuldu
+   - `NSCache` ile in-memory image caching
+   - Background thread'de preloading
+   - Memory pressure handling
+
+2. **CachedAsyncImage SwiftUI View**
+   - Custom SwiftUI view oluşturuldu
+   - MediaCacheManager ile entegrasyon
+   - Placeholder ve loading state'leri
+   - Convenience initializer'lar
+
+3. **Cache Management Features**
+   - `preloadImage(from:completion:)` - Tek image preload
+   - `preloadImages(from:)` - Batch preloading
+   - `getCachedImage(for:)` - Cache'den image alma
+   - `clearCache()` - Cache temizleme
+   - `handleMemoryWarning()` - Memory warning handling
+
+4. **FeedManager Entegrasyonu**
+   - `MediaCacheManager.shared` instance eklendi
+   - `preloadImagesForNewPosts()` çağrısı
+   - `clearCache()` refresh sırasında
+   - Background thread'de preloading
+
+5. **PostView Güncellendi**
+   - `AsyncImage` yerine `CachedAsyncImage` kullanımı
+   - Image posts için cache'den yükleme
+   - Performance optimizasyonu
+
+6. **Cache Configuration**
+   - Maksimum 100 image cache limiti
+   - 100MB total cost limit
+   - 5 dakikada bir otomatik cleanup
+   - Memory warning'de otomatik temizleme
+
+**Teknik Notlar:**
+- `NSCache` ile thread-safe caching
+- `DispatchGroup` ile concurrent preloading
+- `NotificationCenter` ile memory warning handling
+- Background queue ile performans optimizasyonu
+- Timer ile otomatik cleanup
+- Cache status tracking (`notCached`, `caching`, `cached`, `failed`)
+- `DispatchQueue.main.async` ile @Published property güncellemeleri
+- Background thread'den main thread'e güvenli geçiş
+
+**Build Durumu:** ✅ Başarılı
+- `xcodebuild -project Que.xcodeproj -scheme Que -destination 'platform=iOS Simulator,name=iPhone 16' build`
+- Media caching sistemi aktif
+- Image preloading çalışıyor
+- Memory management düzgün
+- Background thread publishing hatası düzeltildi
+
+---
+
 ### 🔄 Pagination Sistemi Güncellemesi - Tamamlandı!
 
 **Tarih:** 7 Ağustos 2025
@@ -494,4 +555,5 @@ firestoreManager.fetchPostsForFeed { posts in
 - Feed sistemi aktif
 - Post parsing hatası çözüldü
 - Pagination sistemi düzgün çalışıyor
-- Firestore'dan veriler sorunsuz çekiliyor 
+- Firestore'dan veriler sorunsuz çekiliyor
+- Media caching sistemi aktif 

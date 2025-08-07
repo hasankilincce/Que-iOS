@@ -11,6 +11,7 @@ class FeedManager: ObservableObject {
     @Published var error: String?
     
     private let firestoreManager = FirestoreDataManager()
+    private let mediaCacheManager = MediaCacheManager.shared
     private let db = Firestore.firestore()
     private var lastDocument: DocumentSnapshot?
     private let postsPerPage = 10
@@ -42,6 +43,9 @@ class FeedManager: ObservableObject {
                     self?.posts = fetchedPosts
                     self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
                 }
+                
+                // Yeni postlar için image'ları preload et
+                self?.preloadImagesForNewPosts()
             }
         }
     }
@@ -62,6 +66,9 @@ class FeedManager: ObservableObject {
                 } else {
                     self?.posts.append(contentsOf: fetchedPosts)
                     self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                    
+                    // Yeni postlar için image'ları preload et
+                    self?.preloadImagesForNewPosts()
                 }
             }
         }
@@ -73,7 +80,19 @@ class FeedManager: ObservableObject {
         lastDocument = nil
         hasMorePosts = true
         posts = []
+        
+        // Cache'i temizle
+        mediaCacheManager.clearCache()
+        
         loadPosts()
+    }
+    
+    /// Yeni postlar için image'ları preload et
+    private func preloadImagesForNewPosts() {
+        // Background thread'de preload et
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            self?.mediaCacheManager.preloadImages(from: self?.posts ?? [])
+        }
     }
     
     /// Popüler gönderileri yükle
@@ -93,6 +112,9 @@ class FeedManager: ObservableObject {
                 } else {
                     self?.posts = fetchedPosts
                     self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                    
+                    // Yeni postlar için image'ları preload et
+                    self?.preloadImagesForNewPosts()
                 }
             }
         }
@@ -115,6 +137,9 @@ class FeedManager: ObservableObject {
                 } else {
                     self?.posts = fetchedPosts
                     self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                    
+                    // Yeni postlar için image'ları preload et
+                    self?.preloadImagesForNewPosts()
                 }
             }
         }
@@ -145,6 +170,9 @@ class FeedManager: ObservableObject {
                 } else {
                     self?.posts = fetchedPosts
                     self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                    
+                    // Yeni postlar için image'ları preload et
+                    self?.preloadImagesForNewPosts()
                 }
             }
         }

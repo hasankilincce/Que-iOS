@@ -29,8 +29,8 @@ struct PostView: View {
                             CustomVideoPlayerViewContainer(videoURL: url)
                                 .frame(width: geometry.size.width, height: geometry.size.height)
                         } else if post.mediaType == "image" {
-                            // Image post
-                            AsyncImage(url: url) { image in
+                            // Image post - CachedAsyncImage kullan
+                            CachedAsyncImage(url: url) { image in
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
@@ -43,7 +43,7 @@ struct PostView: View {
                         }
                     }
                 }
-
+    
                 // Text content overlay
                 VStack(spacing: 20) {
                     Spacer()
