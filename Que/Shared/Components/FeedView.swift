@@ -14,6 +14,20 @@ struct FeedView: View {
                             // Her öğe görünür alanın tam yüksekliğini kaplasın
                             .containerRelativeFrame(.vertical)
                     }
+                    
+                    // Loading indicator
+                    if feedManager.isLoading {
+                        VStack {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .padding()
+                            Text("Daha fazla gönderi yükleniyor...")
+                                .foregroundColor(.gray)
+                                .padding(.bottom, 50)
+                        }
+                        .frame(height: 200)
+                        .containerRelativeFrame(.vertical)
+                    }
                 }
                 .scrollTargetLayout()
             }
@@ -29,8 +43,20 @@ struct FeedView: View {
             }
         }
         .onChange(of: visibleID) { _, newID in
-            // aktif sayfa değiştiğinde video play/pause gibi işlemler
-            // let index = posts.firstIndex { $0.id == newID }
+            // Pagination kontrolü
+            if let newID = newID, 
+               let currentIndex = feedManager.posts.firstIndex(where: { $0.id == newID }) {
+                
+                // Son 2 post kala yeni veri yükle
+                if currentIndex >= feedManager.posts.count - 2 && 
+                   feedManager.hasMorePosts && 
+                   !feedManager.isLoading {
+                    feedManager.loadMorePosts()
+                }
+            }
+        }
+        .refreshable {
+            feedManager.refreshPosts()
         }
     }
 }

@@ -23,42 +23,44 @@ struct PostView: View {
 
                 // İçerik
                 Group {
-                    if let v = post.backgroundVideoURL, let url = URL(string: v) {
-                        // Video post
-                        CustomVideoPlayerViewContainer(videoURL: url)
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-                    } else if let i = post.backgroundImageURL, let url = URL(string: i) {
-                        // Image post
-                        AsyncImage(url: url) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
+                    if let mediaURL = post.mediaURL, let url = URL(string: mediaURL) {
+                        if post.mediaType == "video" {
+                            // Video post
+                            CustomVideoPlayerViewContainer(videoURL: url)
                                 .frame(width: geometry.size.width, height: geometry.size.height)
-                                .clipped()
-                        } placeholder: {
-                            Rectangle().fill(Color.gray.opacity(0.3))
-                                .frame(width: geometry.size.width, height: geometry.size.height)
+                        } else if post.mediaType == "image" {
+                            // Image post
+                            AsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: geometry.size.width, height: geometry.size.height)
+                                    .clipped()
+                            } placeholder: {
+                                Rectangle().fill(Color.gray.opacity(0.3))
+                                    .frame(width: geometry.size.width, height: geometry.size.height)
+                            }
                         }
                     }
-                    // Text only post
-                    VStack(spacing: 20) {
-                        Spacer()
-                        Text(post.content)
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                        Text(post.displayName)
-                            .font(.body)
-                            .foregroundColor(.white.opacity(0.8))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                        Spacer()
-                    }
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    
                 }
+
+                // Text content overlay
+                VStack(spacing: 20) {
+                    Spacer()
+                    Text(post.content)
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                    Text(post.displayName)
+                        .font(.body)
+                        .foregroundColor(.white.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                    Spacer()
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
 
                 // Overlay (like/comment/share vs.)
                 VStack {

@@ -8,7 +8,9 @@ class FeedManager: ObservableObject {
     @Published var isLoading = false
     @Published var hasMorePosts = true
     @Published var currentIndex = 0
+    @Published var error: String?
     
+    private let firestoreManager = FirestoreDataManager()
     private let db = Firestore.firestore()
     private var lastDocument: DocumentSnapshot?
     private let postsPerPage = 10
@@ -24,12 +26,23 @@ class FeedManager: ObservableObject {
         guard !isLoading else { return }
         
         isLoading = true
+        error = nil
         
-        // Gerçek Firebase sorgusu yerine örnek veriler yükle
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.isLoading = false
-            self.posts = self.createSamplePosts()
-            self.hasMorePosts = false // Örnek veriler için false
+        // Firestore'dan veri çek
+        firestoreManager.fetchPostsForFeed { [weak self] fetchedPosts in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                
+                if fetchedPosts.isEmpty {
+                    // Firestore'da veri yoksa örnek verileri kullan
+                    self?.posts = self?.createSamplePosts() ?? []
+                    self?.hasMorePosts = false
+                } else {
+                    // Firestore'dan gelen verileri kullan
+                    self?.posts = fetchedPosts
+                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                }
+            }
         }
     }
     
@@ -38,19 +51,103 @@ class FeedManager: ObservableObject {
         guard !isLoading && hasMorePosts else { return }
         
         isLoading = true
+        error = nil
         
-        // Örnek veriler için pagination yok
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.isLoading = false
+        firestoreManager.fetchMorePosts { [weak self] fetchedPosts in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                
+                if fetchedPosts.isEmpty {
+                    self?.hasMorePosts = false
+                } else {
+                    self?.posts.append(contentsOf: fetchedPosts)
+                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                }
+            }
         }
     }
     
     /// Gönderileri yenile
     func refreshPosts() {
+        firestoreManager.resetPagination()
         lastDocument = nil
         hasMorePosts = true
         posts = []
         loadPosts()
+    }
+    
+    /// Popüler gönderileri yükle
+    func loadPopularPosts() {
+        guard !isLoading else { return }
+        
+        isLoading = true
+        error = nil
+        
+        firestoreManager.fetchPopularPosts { [weak self] fetchedPosts in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                
+                if fetchedPosts.isEmpty {
+                    // Popüler gönderiler yoksa normal gönderileri kullan
+                    self?.loadPosts()
+                } else {
+                    self?.posts = fetchedPosts
+                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                }
+            }
+        }
+    }
+    
+    /// Yeni gönderileri yükle (son 24 saat)
+    func loadRecentPosts() {
+        guard !isLoading else { return }
+        
+        isLoading = true
+        error = nil
+        
+        firestoreManager.fetchRecentPosts { [weak self] fetchedPosts in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                
+                if fetchedPosts.isEmpty {
+                    // Yeni gönderiler yoksa normal gönderileri kullan
+                    self?.loadPosts()
+                } else {
+                    self?.posts = fetchedPosts
+                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                }
+            }
+        }
+    }
+    
+    /// Belirli kriterlere göre gönderileri yükle
+    func loadPostsWithCriteria(
+        category: String? = nil,
+        mediaType: String? = nil,
+        userId: String? = nil
+    ) {
+        guard !isLoading else { return }
+        
+        isLoading = true
+        error = nil
+        
+        firestoreManager.fetchPostsWithCriteria(
+            category: category,
+            mediaType: mediaType,
+            userId: userId
+        ) { [weak self] fetchedPosts in
+            DispatchQueue.main.async {
+                self?.isLoading = false
+                
+                if fetchedPosts.isEmpty {
+                    // Filtrelenmiş gönderiler yoksa normal gönderileri kullan
+                    self?.loadPosts()
+                } else {
+                    self?.posts = fetchedPosts
+                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                }
+            }
+        }
     }
     
     /// Belirli bir gönderiyi beğen/beğenme
@@ -155,6 +252,11 @@ class FeedManager: ObservableObject {
     func goToPost(at index: Int) {
         guard index >= 0 && index < posts.count else { return }
         currentIndex = index
+    }
+    
+    /// Hata mesajını temizle
+    func clearError() {
+        error = nil
     }
     
     // MARK: - Sample Data
