@@ -234,8 +234,8 @@ class FeedPlayerView: UIView {
         
         if visible && !wasVisible {
             // Görünür hale geldiğinde video'yu anında baştan başlat
-            restartVideo()
-            isPlaying = true
+            print("FeedVideoPlayer: Video görünür hale geldi - Post ID: \(postID)")
+            startVideoWithRetry()
         } else if visible && isPlaying {
             player?.play()
             // Mevcut hız durumunu koru
@@ -247,6 +247,32 @@ class FeedPlayerView: UIView {
         } else {
             player?.pause()
         }
+    }
+    
+    private func startVideoWithRetry() {
+        guard let player = player else {
+            // Player henüz hazır değilse 1 saniye sonra tekrar dene
+            print("FeedVideoPlayer: Player henüz hazır değil, 1 saniye sonra tekrar deneniyor - Post ID: \(postID)")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.startVideoWithRetry()
+            }
+            return
+        }
+        
+        // Video'yu baştan başlat ve anında oynat
+        player.seek(to: .zero)
+        player.play()
+        isPlaying = true
+        onPlayPauseToggle?(true)
+        
+        // Mevcut hız durumunu koru
+        if isLongPressing {
+            player.rate = fastPlaybackRate
+        } else {
+            player.rate = normalPlaybackRate
+        }
+        
+        print("FeedVideoPlayer: Video başlatıldı - Post ID: \(postID)")
     }
     
     func restartVideo() {
@@ -389,11 +415,11 @@ struct FeedVideoPlayerViewContainer: View {
                             .foregroundColor(.white)
                             .opacity(0.5)
                     } else {
-                        Image(systemName: "pause.fill")
+                        /*Image(systemName: "pause.fill")
                             .resizable()
                             .frame(width: 40, height: 40)
                             .foregroundColor(.white)
-                            .opacity(0.5)
+                            .opacity(0.5)*/
                     }
                 }
                 .transition(.opacity)

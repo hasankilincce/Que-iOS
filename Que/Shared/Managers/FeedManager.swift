@@ -41,6 +41,15 @@ class FeedManager: ObservableObject {
                     // Firestore'dan gelen verileri kullan
                     self?.posts = fetchedPosts
                     self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
+                    
+                    // İlk post yüklendiğinde feedVisibleID'yi ilk post'un ID'si olarak ayarla
+                    if let firstPost = fetchedPosts.first {
+                        // HomeViewModel'da feedVisibleID'yi güncelle
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("SetFirstPostVisible"),
+                            object: firstPost.id
+                        )
+                    }
                 }
                 
                 // Yeni postlar için image'ları preload et

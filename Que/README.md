@@ -656,7 +656,7 @@ firestoreManager.fetchPostsForFeed { posts in
 
 **Tarih:** 7 Ağustos 2025
 
-**Özellik:** Feed'deki video'lara uzun basıldığında video hızı 2x'e çıkar, bırakıldığında normale döner. Video bittiğinde yeniden başladığında mevcut hız durumu korunur. UILongPressGestureRecognizer state'leri doğru şekilde handle edilir. Video hızlandırıldığında ekranın alt sağ köşesinde "Hız 2x" yazısı gösterilir. Hız durumu tüm video işlemlerinde korunur. Uygulama arka plana geçtiğinde veya bildirim çubuğu açıldığında video anında durur. Uygulama ön plana geldiğinde video otomatik olarak oynatılır.
+**Özellik:** Feed'deki video'lara uzun basıldığında video hızı 2x'e çıkar, bırakıldığında normale döner. Video bittiğinde yeniden başladığında mevcut hız durumu korunur. UILongPressGestureRecognizer state'leri doğru şekilde handle edilir. Video hızlandırıldığında ekranın alt sağ köşesinde "Hız 2x" yazısı gösterilir. Hız durumu tüm video işlemlerinde korunur. Uygulama arka plana geçtiğinde veya bildirim çubuğu açıldığında video anında durur. Uygulama ön plana geldiğinde video otomatik olarak oynatılır. Video görünür görünmez kesinlikle başlar, eğer henüz yüklenmediyse 1 saniye bekleyip tekrar dener. Uygulama ilk açıldığında ilk post'un video'su otomatik olarak başlar.
 
 **Teknik Detaylar:**
 - `isLongPressing` boolean değişkeni ile uzun basma durumu takip edilir
@@ -678,9 +678,21 @@ firestoreManager.fetchPostsForFeed { posts in
   - `pauseVideoOnBackground()` - Video'yu durdurur ve state'i günceller
   - `resumeVideoOnForeground()` - Uygulama ön plana geldiğinde video'yu otomatik olarak oynatır
   - Observer'lar `cleanupPlayer()` fonksiyonunda temizlenir
+- **Otomatik Video Başlatma:**
+  - `startVideoWithRetry()` fonksiyonu ile video görünür görünmez başlatılır
+  - Player henüz hazır değilse 1 saniye bekleyip tekrar dener
+  - Video başlatıldığında `onPlayPauseToggle?(true)` callback'i çağrılır
+  - Mevcut hız durumu korunur
+- **İlk Açılışta Otomatik Başlatma:**
+  - `FeedManager.loadPosts()` fonksiyonunda ilk post yüklendiğinde `SetFirstPostVisible` notification'ı gönderilir
+  - `HomeViewModel.setupFeedNotificationHandling()` fonksiyonu ile notification dinlenir
+  - İlk post'un ID'si `feedVisibleID`'ye atanır
+  - İlk post görünür hale gelir ve video otomatik olarak başlar
 
 **Dosyalar:**
 - `Que/Shared/Components/FeedVideoPlayerView.swift` - Video hızı kontrolü sistemi
+- `Que/Shared/Managers/FeedManager.swift` - İlk post notification'ı
+- `Que/Core/ViewModels/HomeViewModel.swift` - Notification handling
 
 **Build Durumu:** ✅ Başarılı
 

@@ -18,6 +18,20 @@ class HomeViewModel: ObservableObject {
     
     init() {
         setupNotificationHandling()
+        setupFeedNotificationHandling()
+    }
+    
+    // Feed notification handling
+    private func setupFeedNotificationHandling() {
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("SetFirstPostVisible"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let postID = notification.object as? String {
+                self?.feedVisibleID = postID
+            }
+        }
     }
     
     // Tab değişimi
