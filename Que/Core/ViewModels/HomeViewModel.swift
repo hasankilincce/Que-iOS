@@ -33,8 +33,11 @@ class HomeViewModel: ObservableObject {
                 resetExplore()
             }
         case .home:
-            // Home tab functionality removed
-            break
+            // Home'a tekrar tıklanınca feed'i yenile
+            if previousTab == .home {
+                feedManager.refreshPosts()
+                feedVisibleID = nil // Scroll pozisyonunu sıfırla
+            }
         case .add:
             // Add post modalını aç
             break
