@@ -73,12 +73,9 @@ struct QueApp: App {
         #endif
         FirebaseApp.configure()
         
-        // Audio session'ı uygulama başlangıcında yapılandır
-        FeedAudioSessionController.shared.configureAudioSessionForVideoPlayback()
-        
-        // ATT izin akışını başlat
+        // ATT izin akışını başlat - ATTManager was part of feed services, removed
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            ATTManager.shared.requestTrackingAuthorization()
+            // ATT request removed since ATTManager was part of feed services
         }
     }
 

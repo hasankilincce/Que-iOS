@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct PostCreationView: View {
     @ObservedObject var viewModel: AddPostViewModel
@@ -13,7 +14,7 @@ struct PostCreationView: View {
     
     // Computed properties to simplify the view
     private var backgroundView: some View {
-        Group {
+        ZStack {
             if let image = mediaCaptureManager.capturedImage {
                 Image(uiImage: image)
                     .resizable()
@@ -21,14 +22,19 @@ struct PostCreationView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                CustomVideoPlayerView(
-                    videoURL: videoURL,
-                    videoId: "post_creation_video",
-                    isVisible: true
-                )
-                .aspectRatio(contentMode: .fill)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
+                // Custom Video Player
+                CustomVideoPlayerViewContainer(videoURL: videoURL)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.opacity(0.5))
+                    .onAppear {
+                        // PostCreationView açıldığında ses ayarlarını kontrol et
+                        do {
+                            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+                            try AVAudioSession.sharedInstance().setActive(true)
+                        } catch {
+                            print("PostCreationView ses ayarları hatası: \(error)")
+                        }
+                    }
             } else {
                 LinearGradient(
                     gradient: Gradient(colors: [
@@ -252,8 +258,7 @@ struct PostCreationView: View {
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
                 
-                // Overlay gradients
-                FeedPostGradients(screenSize: geometry.size)
+                // Overlay gradients removed
                 
                 // Content - Feed style layout
                 VStack(spacing: 0) {

@@ -21,7 +21,7 @@ struct AddPostView: View {
                     .ignoresSafeArea(.all, edges: .all)
                 // Background - either live camera, captured media, or post creation
                 if showingPostCreation {
-                    // Post creation background
+                    // Post creation background - video player'ı kaldır, sadece image göster
                     if let image = mediaCaptureManager.capturedImage {
                         Image(uiImage: image)
                             .resizable()
@@ -30,26 +30,9 @@ struct AddPostView: View {
                             .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                        // Post creation background
-                        if let image = mediaCaptureManager.capturedImage {
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(9/16, contentMode: .fit)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(Color.black)
-                                .ignoresSafeArea(.all, edges: .all)
-                        } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                            // Video player - Custom video player kullan
-                            CustomVideoPlayerView(
-                                videoURL: videoURL,
-                                videoId: "captured_video",
-                                isVisible: true
-                            )
-                                .aspectRatio(9/16, contentMode: .fit) // 9:16 aspect ratio
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(Color.black)
-                                .ignoresSafeArea(.all, edges: .all)
-                        }
+                        // Video için sadece siyah background göster, player'ı kaldır
+                        Color.black
+                            .ignoresSafeArea(.all, edges: .all)
                     }
                 } else if mediaCaptureManager.showingCapturedMedia {
                     if let image = mediaCaptureManager.capturedImage {
@@ -60,13 +43,9 @@ struct AddPostView: View {
                             .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
                     } else if let videoURL = mediaCaptureManager.capturedVideoURL {
-                        // Video player - Custom video player kullan
-                        CustomVideoPlayerView(
-                            videoURL: videoURL,
-                            videoId: "captured_video",
-                            isVisible: true
-                        )
-                            .aspectRatio(9/16, contentMode: .fit) // 9:16 aspect ratio
+                        // Custom Video Player
+                        CustomVideoPlayerViewContainer(videoURL: videoURL)
+                            .aspectRatio(9/16, contentMode: .fit)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(Color.black)
                             .ignoresSafeArea(.all, edges: .all)
