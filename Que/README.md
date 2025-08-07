@@ -298,10 +298,61 @@ Que/
    - Media üzerinde overlay olarak konumlandırma
    - `VStack` ile düzenli text layout
 
-**Teknik Notlar:**
-- `GeometryReader` ile doğru boyutlandırma
-- `ZStack` ile katmanlı layout
-- `ignoresSafeArea()` ile tam ekran kullanımı
+**Build Durumu:** ✅ Başarılı
+
+---
+
+### 🔄 Feed Başlangıç İndeksi Özelliği - Tamamlandı!
+
+**Tarih:** 7 Ağustos 2025
+
+**Yapılan Değişiklikler:**
+
+1. **FeedView Başlangıç İndeksi**
+   - `FeedView`'e `startIndex` parametresi eklendi
+   - `onIndexChanged` callback sistemi eklendi
+   - Default initializer ile geriye uyumluluk
+
+2. **FeedManager Güncellemesi**
+   - `FeedManager`'a `startIndex` parametresi eklendi
+   - Başlangıç indeksi desteği
+
+3. **HomeViewModel Entegrasyonu**
+   - `HomeViewModel`'e `feedStartIndex` @Published property'si eklendi
+   - İndeks değişikliklerini takip etme
+   - Otomatik indeks kaydetme sistemi
+
+4. **HomePage Güncellemesi**
+   - `HomePage`'de FeedView callback sistemi entegre edildi
+   - `onChange(of: visibleID)` ile indeks kaydetme
+   - Kaldığı yerden devam etme özelliği
+
+**Özellikler:**
+- **Kaldığı Yerden Devam**: Anasayfadan çıkıp tekrar girdiğinizde kaldığınız yerden devam eder
+- **Başlangıç İndeksi Parametresi**: FeedView'e `startIndex` parametresi eklendi
+- **Otomatik İndeks Kaydetme**: Görünen post indeksi otomatik olarak kaydedilir
+- **Callback Sistemi**: `onIndexChanged` callback'i ile indeks güncellemeleri
+
+**Teknik Detaylar:**
+- `FeedView`'e `startIndex` ve `onIndexChanged` parametreleri eklendi
+- `FeedManager`'a `startIndex` parametresi eklendi
+- `HomeViewModel`'e `feedStartIndex` @Published property'si eklendi
+- `HomePage`'de FeedView callback sistemi entegre edildi
+- `onChange(of: visibleID)` ile indeks kaydetme sistemi
+
+**Kullanım:**
+```swift
+// Belirli bir indeksten başlatmak için
+FeedView(startIndex: 5)
+
+// İndeks değişikliklerini takip etmek için
+FeedView(
+    startIndex: viewModel.feedStartIndex,
+    onIndexChanged: { index in
+        viewModel.feedStartIndex = index
+    }
+)
+```
 
 **Build Durumu:** ✅ Başarılı
 

@@ -7,6 +7,9 @@ class HomeViewModel: ObservableObject {
     @Published var isProfileRoot: Bool = true
     @Published var selectedUserId: String? = nil
     @Published var isExploreSearching: Bool = false
+    @Published var feedStartIndex: Int = 0 // Feed'de kaldığı yer
+    @Published var feedManager: FeedManager = FeedManager()
+    @Published var feedVisibleID: String? = nil
     
     // Sub-ViewModels
     @Published var exploreViewModel = ExploreViewModel()

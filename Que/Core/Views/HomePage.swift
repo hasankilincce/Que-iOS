@@ -9,8 +9,11 @@ struct HomePage: View {
                 switch viewModel.selectedTab {
                 case .home:
                     // Feed View
-                    FeedView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    FeedView(
+                        feedManager: viewModel.feedManager,
+                        visibleID: $viewModel.feedVisibleID
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .explore:
                     ExploreView(viewModel: viewModel.exploreViewModel, selectedUserId: $viewModel.selectedUserId, isSearching: $viewModel.isExploreSearching)
                 case .add:

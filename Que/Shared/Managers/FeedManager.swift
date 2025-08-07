@@ -16,8 +16,10 @@ class FeedManager: ObservableObject {
     private let db = Firestore.firestore()
     private var lastDocument: DocumentSnapshot?
     private let postsPerPage = 10
+    private var startIndex: Int = 0
     
-    init() {
+    init(startIndex: Int = 0) {
+        self.startIndex = startIndex
         loadPosts()
     }
     
