@@ -15,30 +15,31 @@ struct PostView: View {
     }
     
     var body: some View {
-        ZStack {
-            // Arka plan
-            backgroundColor
-                .ignoresSafeArea()
-
-            // İçerik
-            Group {
-                if let v = post.backgroundVideoURL, let url = URL(string: v) {
-                    // Video post
-                    CustomVideoPlayerViewContainer(videoURL: url)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .ignoresSafeArea()
-                } else if let i = post.backgroundImageURL, let url = URL(string: i) {
-                    // Image post
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        Rectangle().fill(Color.gray.opacity(0.3))
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+        GeometryReader { geometry in
+            ZStack {
+                // Arka plan
+                backgroundColor
                     .ignoresSafeArea()
-                } else {
+
+                // İçerik
+                Group {
+                    if let v = post.backgroundVideoURL, let url = URL(string: v) {
+                        // Video post
+                        CustomVideoPlayerViewContainer(videoURL: url)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                    } else if let i = post.backgroundImageURL, let url = URL(string: i) {
+                        // Image post
+                        AsyncImage(url: url) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                                .clipped()
+                        } placeholder: {
+                            Rectangle().fill(Color.gray.opacity(0.3))
+                                .frame(width: geometry.size.width, height: geometry.size.height)
+                        }
+                    }
                     // Text only post
                     VStack(spacing: 20) {
                         Spacer()
@@ -55,21 +56,22 @@ struct PostView: View {
                             .padding(.horizontal, 24)
                         Spacer()
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .ignoresSafeArea()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    
                 }
-            }
 
-            // Overlay (like/comment/share vs.)
-            VStack {
-                HStack {
+                // Overlay (like/comment/share vs.)
+                VStack {
+                    HStack {
+                        Spacer()
+                        // butonlar burada
+                    }
+                    .padding()
                     Spacer()
-                    // butonlar burada
                 }
-                .padding()
-                Spacer()
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
-        .contentShape(Rectangle())
+        .ignoresSafeArea(.all, edges: .all)
     }
 }

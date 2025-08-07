@@ -25,146 +25,389 @@ Que/
 │   │   ├── LoginViewModel.swift
 │   │   ├── RegisterPage.swift
 │   │   └── RegisterViewModel.swift
-│   ├── Post/                      # Post oluşturma ve yönetimi
+│   ├── Post/                      # Post oluşturma
 │   │   ├── Views/
 │   │   │   └── AddPostView.swift
 │   │   └── ViewModels/
 │   │       └── AddPostViewModel.swift
-│   ├── Explore/                   # Keşfet özelliği
-│   │   ├── Views/
-│   │   │   └── ExploreView.swift
-│   │   └── ViewModels/
-│   │       └── ExploreViewModel.swift
-│   ├── Notifications/             # Bildirimler
-│   │   └── Views/
-│   │       └── NotificationsView.swift
 │   └── Profile/                   # Profil yönetimi
 │       ├── Views/
-│       │   └── ProfileView.swift
+│       │   ├── ProfilePage.swift
+│       │   └── ProfileListPage.swift
 │       └── ViewModels/
-│           └── ProfileViewModel.swift
+│           ├── ProfileViewModel.swift
+│           └── ProfileListViewModel.swift
 │
-├── Shared/                        # Paylaşılan bileşenler
-│   ├── Components/                # Yeniden kullanılabilir UI bileşenleri
-│   │   ├── CustomVideoPlayerView.swift
-│   │   ├── FeedView.swift
-│   │   ├── PostView.swift
-│   │   └── PostCreationView.swift
-│   ├── Managers/                  # Yönetici sınıflar
-│   │   └── MediaCaptureManager.swift
-│   └── Utilities/                 # Yardımcı fonksiyonlar
-│       └── Extensions/
-│           └── View+Extensions.swift
-│
-└── README.md                     # Bu dosya
+└── Shared/                        # Paylaşılan bileşenler
+    ├── Components/                # Yeniden kullanılabilir UI bileşenleri
+    │   ├── CustomVideoPlayerView.swift
+    │   ├── FeedView.swift
+    │   ├── PostView.swift
+    │   └── PostCreationView.swift
+    └── Managers/                  # İş mantığı yöneticileri
+        └── FeedManager.swift
 ```
 
-## 🚀 Özellikler ve Geliştirmeler
+## 🔄 Değişiklik Geçmişi
 
-### 📱 Custom Video Player
-- **Özellik:** Tamamen özel video player
-- **Teknik Detaylar:** AVFoundation kullanarak UIViewRepresentable ile implementasyon
-- **Özellikler:**
-  - One tap play/pause
-  - Persistent play/pause icon
-  - Auto-loop video
-  - Custom controls (AVKit kontrollerini gizleme)
-  - Echo sorunu çözümü
-- **Dosyalar:** `Que/Shared/Components/CustomVideoPlayerView.swift`
-- **Build Durumu:** ✅ Başarılı
+### 📝 PostView İçerik Görünürlüğü Düzeltmesi - 06.08.2025
 
-### 🎨 Feed Sistemi
-- **Özellik:** TikTok/Instagram Reels tarzı feed
-- **Teknik Detaylar:** TabView ile dikey scroll, tam sayfa post görünümü
-- **Özellikler:**
-  - Dikey scroll navigation
-  - Tam sayfa post görünümü
-  - Video, fotoğraf ve metin desteği
-  - Yeniden kullanılabilir FeedView component'i
-- **Dosyalar:** 
-  - `Que/Shared/Components/FeedView.swift`
-  - `Que/Shared/Components/PostView.swift`
-  - `Que/Core/Views/HomePage.swift` (entegrasyon)
-- **Build Durumu:** ✅ Başarılı
+**Özellik:** PostView'lerde yazılar ve içeriklerin görünmesi
 
-### 🌈 PostView Arkaplan Renkleri
-- **Özellik:** Her post için farklı arkaplan renkleri
-- **Teknik Detaylar:** Post ID'sine göre hash-based renk seçimi
-- **Özellikler:**
-  - 12 farklı renk paleti (mavi, mor, pembe, turuncu, kırmızı, yeşil, indigo, teal, cyan, mint, kahverengi, sarı)
-  - Post ID hash'i ile deterministik renk seçimi
-  - Tam ekran renk kaplama
-  - Video/fotoğraf içeriği ile uyumlu görünüm
-- **Dosyalar:** `Que/Shared/Components/PostView.swift`
-- **Build Durumu:** ✅ Başarılı
+**Teknik Detaylar:**
+- `GeometryReader` eklendi ve tam ekran coverage sağlandı
+- `ignoresSafeArea(.all, edges: .all)` doğru yere taşındı
+- `geometry.size.width` ve `geometry.size.height` ile frame ayarlandı
+- Text only post'lar için VStack düzenlendi
+- Video ve image post'lar için frame ayarları düzeltildi
 
-### 📱 PostView Tam Ekran Boyutu Düzeltmesi
-- **Sorun:** PostView safe area'ları dahil ediyordu, telefonun tam boyutunu kullanmıyordu
-- **Çözüm:** `ignoresSafeArea()` modifier'ı eklendi
-- **Sonuç:** Artık post'lar telefonun tam ekran boyutunu kullanıyor
-- **Teknik Detaylar:** GeometryReader ile birlikte ignoresSafeArea() kullanımı
-- **Dosyalar:** `Que/Shared/Components/PostView.swift`
-- **Build Durumu:** ✅ Başarılı
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/PostView.swift`
 
-## 🔧 Teknik Notlar
+**Build Durumu:** ✅ Başarılı
 
-### Video Player Geliştirme Süreci
-1. **İlk Versiyon:** SwiftUI VideoPlayer ile başlangıç
-2. **AVKit Kontrolleri:** Gizleme ihtiyacı tespit edildi
-3. **UIViewRepresentable:** AVPlayerLayer ile özel implementasyon
-4. **Echo Sorunu:** Multiple player instance'ları çözüldü
-5. **One Tap Play/Pause:** CustomVideoPlayerViewContainer ile state management
-6. **Persistent Icon:** Pause durumunda icon görünürlüğü
+**Teknik Notlar:**
+- `GeometryReader` ile tam ekran coverage
+- `frame(width: geometry.size.width, height: geometry.size.height)` ile doğru boyutlandırma
+- Text içerikleri artık görünür
+- Video ve image post'lar düzgün frame'de
+- Arkaplan renkleri korundu
 
-### Feed Sistemi Geliştirme Süreci
-1. **FeedView:** Ana feed component'i oluşturuldu
-2. **PostView:** Her post için tam sayfa component'i
-3. **HomePage Entegrasyonu:** Feed placeholder'ı kaldırıldı
-4. **Post Model Uyumluluğu:** backgroundVideoURL ve backgroundImageURL property'leri kullanıldı
-5. **Arkaplan Renkleri:** Hash-based renk seçimi sistemi eklendi
-6. **Tam Ekran Boyutu:** ignoresSafeArea() ile safe area sorunu çözüldü
+---
 
-### Build Süreci
-- Her özellik sonrası `xcodebuild` ile kontrol
-- Hata tespiti ve çözümü
-- README.md güncellemeleri
+### 📝 FeedView FeedManager Entegrasyonu - 06.08.2025
 
-## 📋 Gelecek Geliştirmeler
+**Özellik:** FeedView'in görünüşünü bozmadan FeedManager ile entegrasyonu
 
-### Feed Sistemi
-- [ ] Gerçek post verileri entegrasyonu
-- [ ] Like, comment, share butonları
-- [ ] Kullanıcı etkileşimleri
-- [ ] Infinite scroll
-- [ ] Post detay sayfaları
+**Teknik Detaylar:**
+- FeedView'de `@State private var posts: [Post] = []` yerine `@StateObject private var feedManager = FeedManager()` kullanıldı
+- `ForEach(posts)` yerine `ForEach(feedManager.posts)` kullanıldı
+- `loadPosts()` fonksiyonu kaldırıldı, yerine `feedManager.loadPosts()` kullanıldı
+- Görünüş tamamen korundu, sadece veri kaynağı değiştirildi
+- `task` modifier'ında boş kontrol eklendi: `if feedManager.posts.isEmpty`
 
-### Video Player
-- [ ] Video progress bar
-- [ ] Forward/backward controls
-- [ ] Video speed adjustment
-- [ ] Volume controls
-- [ ] Fullscreen mode
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/FeedView.swift`
 
-### Genel İyileştirmeler
-- [ ] Performance optimizasyonları
-- [ ] Memory management
-- [ ] Error handling
-- [ ] Loading states
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- FeedView'in ScrollView, LazyVStack, containerRelativeFrame yapısı korundu
+- scrollTargetBehavior(.paging) ve scrollPosition(id: $visibleID) ayarları değişmedi
+- FeedManager'dan gelen 15 örnek post görüntüleniyor
+- Görünüş tamamen aynı, sadece veri kaynağı FeedManager'a geçirildi
+
+---
+
+### 📝 Örnek Gönderiler Özelliği - 06.08.2025
+
+**Özellik:** FeedManager'a 15 farklı örnek gönderi eklendi
+
+**Teknik Detaylar:**
+- `createSamplePosts()` fonksiyonu eklendi
+- 15 farklı içerik türü (video, fotoğraf, metin)
+- Gerçekçi kullanıcı profilleri ve içerikler
+- Google sample video URL'leri ve Unsplash fotoğraf URL'leri
+- Farklı post türleri (question, answer)
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Managers/FeedManager.swift`
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- `mediaType` property'si String? tipinde düzeltildi
+- Enum değerleri yerine string değerleri kullanıldı
+- Gerçek Firebase sorgusu yerine örnek veriler yükleniyor
+- 1 saniye gecikme ile gerçekçi loading simülasyonu
+
+---
+
+### 📝 FeedManager Özelliği - 06.08.2025
+
+**Özellik:** Feed'de gösterilecek gönderileri kontrol eden manager
+
+**Teknik Detaylar:**
+- `ObservableObject` protokolü ile state management
+- `@Published` properties: posts, isLoading, hasMorePosts, currentIndex
+- Firebase Firestore entegrasyonu
+- Pagination desteği (order by createdAt, limit 10)
+- Pull-to-refresh ve load-more fonksiyonalitesi
+- Loading, empty ve error state'leri
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Managers/FeedManager.swift` (Yeni dosya)
+- `Que/Shared/Components/FeedView.swift` (Entegrasyon)
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- `import FirebaseAuth` eklendi
+- FeedView yapısı korundu
+- `@StateObject` ile FeedManager entegrasyonu
+- TabView yerine ScrollView + LazyVStack kullanımı devam ediyor
+
+---
+
+### 📝 PostView Tam Ekran Boyutu - 06.08.2025
+
+**Özellik:** PostView'in telefonun tam boyutunu kullanması
+
+**Teknik Detaylar:**
+- `GeometryReader`'a `.ignoresSafeArea(.all, edges: .all)` eklendi
+- Safe area yerine device bounds kullanımı
+- Tam ekran coverage sağlandı
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/PostView.swift`
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- `ignoresSafeArea()` modifier'ı GeometryReader'ın content'ine eklendi
+- PostView artık telefonun tam boyutunu kullanıyor
+- TikTok/Instagram Reels benzeri tam ekran deneyim
+
+---
+
+### 📝 PostView Arkaplan Renkleri - 06.08.2025
+
+**Özellik:** Her PostView'e farklı arkaplan rengi
+
+**Teknik Detaylar:**
+- `backgroundColor` computed property eklendi
+- Post ID'sine göre hash-based renk seçimi
+- 12 farklı renk paleti
+- Tam ekran coverage
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/PostView.swift`
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- `abs(post.id.hashValue) % colors.count` ile renk seçimi
+- `ignoresSafeArea()` ile tam ekran coverage
+- Her post farklı renk alıyor
+
+---
+
+### 📝 Feed Özelliği - 06.08.2025
+
+**Özellik:** TikTok/Instagram Reels benzeri dikey scroll feed
+
+**Teknik Detaylar:**
+- `FeedView` reusable component olarak oluşturuldu
+- `TabView(selection: $currentIndex)` ile `PageTabViewStyle(indexDisplayMode: .never)`
+- Dikey, tam sayfa scrolling
+- `PostView` component'i eklendi
+- `ignoresSafeArea()` ile tam ekran coverage
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/FeedView.swift` (Yeni dosya)
+- `Que/Shared/Components/PostView.swift` (Yeni dosya)
+- `Que/Core/Views/HomePage.swift` (Entegrasyon)
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- `TabView` ile `PageTabViewStyle` kullanımı
+- `indexDisplayMode: .never` ile gizli indicator
+- `ignoresSafeArea()` ile safe area bypass
+- Her post tam sayfa olarak görüntüleniyor
+
+---
+
+### 📝 Kalıcı Play/Pause İkonu - 06.08.2025
+
+**Özellik:** Video durduğunda play/pause ikonunun sürekli görünmesi
+
+**Teknik Detaylar:**
+- `CustomVideoPlayerViewContainer`'da icon visibility logic güncellendi
+- `if showIcon || !isPlaying` koşulu eklendi
+- Video durduğunda icon sürekli görünür
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/CustomVideoPlayerView.swift`
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- Icon visibility hem `showIcon` state'ine hem de `isPlaying` state'ine bağlı
+- Video durduğunda icon otomatik olarak görünür kalıyor
+- Sadece ilgili kısım düzenlendi, diğer kodlar değişmedi
+
+---
+
+### 📝 One Tap Play/Pause - 06.08.2025
+
+**Özellik:** Videoya tek dokunuşla play/pause
+
+**Teknik Detaylar:**
+- `PlayerView`'e `UITapGestureRecognizer` eklendi
+- `togglePlayPause()` fonksiyonu eklendi
+- `onPlayPauseToggle` callback ile SwiftUI state güncellemesi
+- `PostCreationView`'de `ZStack` ile tap gesture düzeltildi
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/CustomVideoPlayerView.swift`
+- `Que/Shared/Components/PostCreationView.swift`
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- `UITapGestureRecognizer` ile tap detection
+- `player.rate` kontrolü ile play/pause toggle
+- `onPlayPauseToggle` callback ile SwiftUI state sync
+- `ZStack` ile tap gesture düzeltmesi
+
+---
+
+### 📝 Echo Sorunu Çözümü - 06.08.2025
+
+**Özellik:** PostCreationView'deki audio echo sorununun çözümü
+
+**Teknik Detaylar:**
+- `AddPostView`'de background video player'ın koşullu render edilmesi
+- `PostCreationView`'de `AVAudioSession` management
+- `onAppear` ve `onDisappear` modifier'ları eklendi
+- `AVAudioSession.sharedInstance().setActive()` çağrıları
+
+**Değiştirilen Dosyalar:**
+- `Que/Features/Post/Views/AddPostView.swift`
+- `Que/Shared/Components/PostCreationView.swift`
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- Background video player sadece `!showingPostCreation` durumunda render ediliyor
+- `AVAudioSession` activation/deactivation
+- `import AVFoundation` eklendi
+- Echo sorunu tamamen çözüldü
+
+---
+
+### 📝 Siyah Ekran Sorunu Çözümü - 06.08.2025
+
+**Özellik:** AVPlayerLayer frame güncelleme sorunu çözümü
+
+**Teknik Detaylar:**
+- `PlayerView`'de `layoutSubviews()` override edildi
+- `updateLayerFrame()` fonksiyonu eklendi
+- `playerLayer?.frame = bounds` ile frame güncelleme
+- `updateUIView`'de frame güncelleme çağrısı
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/CustomVideoPlayerView.swift`
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- `override func layoutSubviews()` ile frame management
+- `updateLayerFrame()` ile manual frame güncelleme
+- `updateUIView`'de frame sync
+- Siyah ekran sorunu tamamen çözüldü
+
+---
+
+### 📝 AVKit Kontrollerini Gizleme - 06.08.2025
+
+**Özellik:** AVKit'in varsayılan kontrollerini tamamen gizleme
+
+**Teknik Detaylar:**
+- `UIViewRepresentable` kullanımına geçiş
+- `AVPlayerLayer` ile direkt video rendering
+- Custom `PlayerView` (UIView subclass) oluşturuldu
+- `AVPlayer` ve `AVPlayerLayer` direkt yönetimi
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/CustomVideoPlayerView.swift`
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- SwiftUI `VideoPlayer`'dan `UIViewRepresentable`'a geçiş
+- `AVPlayerLayer` ile tam kontrol
+- Custom `PlayerView` ile frame management
+- AVKit kontrolleri tamamen gizlendi
+
+---
+
+### 📝 Özel Video Player Geliştirme - 06.08.2025
+
+**Özellik:** Sıfırdan özel video player geliştirme
+
+**Teknik Detaylar:**
+- `CustomVideoPlayerView` component'i oluşturuldu
+- `UIViewRepresentable` protokolü kullanımı
+- `AVPlayer` ve `AVPlayerLayer` direkt yönetimi
+- Play/pause functionality
+- Visibility check (%80 görünürlük kontrolü)
+
+**Değiştirilen Dosyalar:**
+- `Que/Shared/Components/CustomVideoPlayerView.swift` (Yeni dosya)
+- `Que/Features/Post/Views/AddPostView.swift` (Entegrasyon)
+- `Que/Shared/Components/PostCreationView.swift` (Entegrasyon)
+
+**Build Durumu:** ✅ Başarılı
+
+**Teknik Notlar:**
+- `UIViewRepresentable` ile UIKit entegrasyonu
+- `AVPlayerLayer` ile video rendering
+- `GeometryReader` ile visibility check
+- Custom play/pause controls
+- Memory management ve cleanup
+
+---
+
+## 🎯 Gelecek Geliştirmeler
+
+- [ ] Gerçek Firebase entegrasyonu
+- [ ] Video upload functionality
+- [ ] User authentication
+- [ ] Like/comment sistemi
+- [ ] Push notifications
 - [ ] Offline support
+- [ ] Performance optimizations
 
-## 🛠️ Kullanılan Teknolojiler
+## 📱 Uygulama Özellikleri
 
-- **SwiftUI:** Modern declarative UI framework
-- **AVFoundation:** Video playback ve media handling
-- **AVKit:** Video player UI components
-- **Firebase:** Backend servisleri
-- **SDWebImage:** Image loading ve caching
-- **TOCropViewController:** Image cropping
+### ✅ Tamamlanan Özellikler
 
-## 📝 Notlar
+1. **Özel Video Player**
+   - Play/pause controls
+   - AVKit kontrollerini gizleme
+   - Visibility check
+   - Memory management
 
-- Tüm değişiklikler README.md'de dokümante edildi
-- Her aşamada build kontrolü yapıldı
-- Hata çözümleri detaylı olarak kaydedildi
-- Kod kalitesi ve performans göz önünde bulunduruldu
-- Safe area sorunları çözüldü ve tam ekran deneyimi sağlandı 
+2. **Feed Sistemi**
+   - TikTok/Instagram Reels benzeri dikey scroll
+   - Tam ekran post görüntüleme
+   - Farklı arkaplan renkleri
+   - FeedManager ile state management
+
+3. **Post Oluşturma**
+   - Video/fotoğraf çekme
+   - Önizleme
+   - Post creation flow
+
+4. **UI/UX**
+   - Modern SwiftUI interface
+   - Smooth animations
+   - Responsive design
+   - Safe area handling
+
+### 🔄 Devam Eden Özellikler
+
+- Feed optimizasyonu
+- Performance improvements
+- Error handling
+- Loading states
+
+### 📋 Planlanan Özellikler
+
+- User authentication
+- Real-time updates
+- Social features
+- Content moderation
+- Analytics integration 
