@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PostView: View {
     let post: Post
+    let isVisible: Bool
     
     // Post ID'sine göre rastgele renk seçimi
     private var backgroundColor: Color {
@@ -25,9 +26,13 @@ struct PostView: View {
                 Group {
                     if let mediaURL = post.mediaURL, let url = URL(string: mediaURL) {
                         if post.mediaType == "video" {
-                            // Video post
-                            CustomVideoPlayerViewContainer(videoURL: url)
-                                .frame(width: geometry.size.width, height: geometry.size.height)
+                            // Video post - FeedVideoPlayerViewContainer kullan
+                            FeedVideoPlayerViewContainer(
+                                videoURL: url,
+                                postID: post.id,
+                                isVisible: isVisible
+                            )
+                            .frame(width: geometry.size.width, height: geometry.size.height)
                         } else if post.mediaType == "image" {
                             // Image post - CachedAsyncImage kullan
                             CachedAsyncImage(url: url) { image in
@@ -73,6 +78,9 @@ struct PostView: View {
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
+            .onTapGesture(count: 2) {
+                print("PostView çift tıklandı - Post ID: \(post.id)")
+            }
         }
         .ignoresSafeArea(.all, edges: .all)
     }

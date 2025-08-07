@@ -9,9 +9,12 @@ struct FeedView: View {
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
                     ForEach(feedManager.posts) { post in
-                        PostView(post: post)
-                            .id(post.id)
-                            .containerRelativeFrame(.vertical)
+                        PostView(
+                            post: post,
+                            isVisible: visibleID == post.id
+                        )
+                        .id(post.id)
+                        .containerRelativeFrame(.vertical)
                     }
                     if feedManager.isLoading {
                         VStack {
