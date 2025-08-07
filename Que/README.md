@@ -656,7 +656,7 @@ firestoreManager.fetchPostsForFeed { posts in
 
 **Tarih:** 7 Ağustos 2025
 
-**Özellik:** Feed'deki video'lara uzun basıldığında video hızı 2x'e çıkar, bırakıldığında normale döner. Video bittiğinde yeniden başladığında mevcut hız durumu korunur. UILongPressGestureRecognizer state'leri doğru şekilde handle edilir. Video hızlandırıldığında ekranın alt sağ köşesinde "Hız 2x" yazısı gösterilir. Hız durumu tüm video işlemlerinde korunur.
+**Özellik:** Feed'deki video'lara uzun basıldığında video hızı 2x'e çıkar, bırakıldığında normale döner. Video bittiğinde yeniden başladığında mevcut hız durumu korunur. UILongPressGestureRecognizer state'leri doğru şekilde handle edilir. Video hızlandırıldığında ekranın alt sağ köşesinde "Hız 2x" yazısı gösterilir. Hız durumu tüm video işlemlerinde korunur. Uygulama arka plana geçtiğinde veya bildirim çubuğu açıldığında video anında durur. Uygulama ön plana geldiğinde video otomatik olarak oynatılır.
 
 **Teknik Detaylar:**
 - `isLongPressing` boolean değişkeni ile uzun basma durumu takip edilir
@@ -672,6 +672,12 @@ firestoreManager.fetchPostsForFeed { posts in
 - `AVPlayerItemDidPlayToEndTime` notification'ında video yeniden başladığında mevcut hız durumu korunur
 - Video oynatılmaya başladığında veya yeniden başladığında doğru hızda başlar
 - Hız göstergesi `isLongPressing` durumuna göre gösterilir/gizlenir
+- **App Lifecycle Observer'ları:**
+  - `UIApplication.willResignActiveNotification` - Uygulama arka plana geçtiğinde video durdurulur
+  - `UIApplication.didBecomeActiveNotification` - Uygulama ön plana geldiğinde video otomatik olarak oynatılır
+  - `pauseVideoOnBackground()` - Video'yu durdurur ve state'i günceller
+  - `resumeVideoOnForeground()` - Uygulama ön plana geldiğinde video'yu otomatik olarak oynatır
+  - Observer'lar `cleanupPlayer()` fonksiyonunda temizlenir
 
 **Dosyalar:**
 - `Que/Shared/Components/FeedVideoPlayerView.swift` - Video hızı kontrolü sistemi

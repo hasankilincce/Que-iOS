@@ -63,14 +63,60 @@ class FeedPlayerView: UIView {
     private var isLongPressing = false // Uzun basma durumu
     private let normalPlaybackRate: Float = 1.0 // Normal hız
     private let fastPlaybackRate: Float = 2.0 // Hızlı oynatma hızı
-
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupGestures()
+        setupAppLifecycleObservers()
     }
     
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        super.init(coder: coder)
+        setupGestures()
+        setupAppLifecycleObservers()
+    }
+    
+    private func setupAppLifecycleObservers() {
+        // Uygulama arka plana geçtiğinde video'yu durdur
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.pauseVideoOnBackground()
+        }
+        
+        // Uygulama ön plana geldiğinde video'yu kontrol et
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.resumeVideoOnForeground()
+        }
+    }
+    
+    private func pauseVideoOnBackground() {
+        print("FeedVideoPlayer: Uygulama arka plana geçti - Video durduruluyor - Post ID: \(postID)")
+        player?.pause()
+        isPlaying = false
+        onPlayPauseToggle?(false)
+    }
+    
+    private func resumeVideoOnForeground() {
+        print("FeedVideoPlayer: Uygulama ön plana geldi - Video oynatılıyor - Post ID: \(postID)")
+        // Uygulama ön plana geldiğinde video'yu otomatik olarak oynat
+        if isVisible {
+            player?.play()
+            isPlaying = true
+            onPlayPauseToggle?(true)
+            // Mevcut hız durumunu koru
+            if isLongPressing {
+                player?.rate = fastPlaybackRate
+            } else {
+                player?.rate = normalPlaybackRate
+            }
+        }
     }
     
     private func setupGestures() {
@@ -274,6 +320,11 @@ class FeedPlayerView: UIView {
         if let playerItem = self.playerItem {
             NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
         }
+        
+        // App lifecycle observer'larını temizle
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
+        
         player?.pause()
         player = nil
         playerItem = nil
