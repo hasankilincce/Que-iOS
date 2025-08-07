@@ -8,6 +8,7 @@ class FeedManager: ObservableObject {
     @Published var isLoading = false
     @Published var hasMorePosts = true
     @Published var currentIndex = 0
+    @Published var activePostIndex = 0 // Aktif post index'ini takip et
     @Published var error: String?
     
     private let firestoreManager = FirestoreDataManager()
@@ -92,6 +93,22 @@ class FeedManager: ObservableObject {
         // Background thread'de preload et
         DispatchQueue.global(qos: .background).async { [weak self] in
             self?.mediaCacheManager.preloadImages(from: self?.posts ?? [])
+        }
+    }
+    
+    /// Aktif post değiştiğinde cache'i güncelle
+    func updateCacheForActivePost(index: Int) {
+        DispatchQueue.main.async { [weak self] in
+            self?.activePostIndex = index
+        }
+        
+        // Background thread'de cache güncelle
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            guard let self = self else { return }
+            self.mediaCacheManager.preloadImagesForActivePost(
+                posts: self.posts,
+                activePostIndex: index
+            )
         }
     }
     

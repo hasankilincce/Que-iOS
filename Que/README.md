@@ -111,6 +111,47 @@ Que/
 
 ---
 
+### 🎯 Smart Cache Optimizasyonu - Tamamlandı!
+
+**Tarih:** 7 Ağustos 2025
+
+**Yapılan Değişiklikler:**
+
+1. **Aktif Post Bazlı Caching**
+   - `preloadImagesForActivePost(posts:activePostIndex:)` fonksiyonu eklendi
+   - Sadece aktif gönderi ve etrafındaki 2'şer gönderiyi cache'leme
+   - Geride kalan gönderilerin cache'ini temizleme
+
+2. **FeedManager Güncellemesi**
+   - `activePostIndex` property eklendi
+   - `updateCacheForActivePost(index:)` fonksiyonu eklendi
+   - Aktif post değiştiğinde otomatik cache güncelleme
+
+3. **FeedView Entegrasyonu**
+   - `onChange(of: visibleID)` içinde cache güncelleme
+   - Aktif post değiştiğinde `updateCacheForActivePost` çağrısı
+
+4. **Memory Optimizasyonu**
+   - `clearImageCache()` private fonksiyonu
+   - Sadece gerekli 5 gönderiyi cache'leme
+   - Otomatik cache temizleme
+
+**Build Durumu:** ✅ Başarılı
+- `xcodebuild -project Que.xcodeproj -scheme Que -destination 'platform=iOS Simulator,name=iPhone 16' build`
+- Smart caching sistemi aktif
+- Memory kullanımı optimize edildi
+- Aktif post tracking çalışıyor
+
+**Teknik Notlar:**
+- Aktif gönderi ±2 gönderi caching stratejisi
+- `max(0, activePostIndex - 2)` ve `min(posts.count - 1, activePostIndex + 2)` ile güvenli index hesaplama
+- Background thread'de cache güncelleme
+- Otomatik cache temizleme ile memory optimizasyonu
+- `DispatchQueue.main.async` ile @Published property güncellemeleri
+- Background thread publishing hatası tamamen çözüldü
+
+---
+
 ### 🔄 Pagination Sistemi Güncellemesi - Tamamlandı!
 
 **Tarih:** 7 Ağustos 2025

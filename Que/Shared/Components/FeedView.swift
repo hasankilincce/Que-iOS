@@ -47,6 +47,9 @@ struct FeedView: View {
             if let newID = newID, 
                let currentIndex = feedManager.posts.firstIndex(where: { $0.id == newID }) {
                 
+                // Aktif post değiştiğinde cache'i güncelle
+                feedManager.updateCacheForActivePost(index: currentIndex)
+                
                 // Son 2 post kala yeni veri yükle
                 if currentIndex >= feedManager.posts.count - 2 && 
                    feedManager.hasMorePosts && 

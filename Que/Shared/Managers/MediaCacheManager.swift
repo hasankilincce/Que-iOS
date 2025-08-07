@@ -54,7 +54,9 @@ class MediaCacheManager: ObservableObject {
         
         // Eğer zaten cache'de varsa
         if imageCache.object(forKey: urlString as NSString) != nil {
-            cacheStatus[urlString] = .cached
+            DispatchQueue.main.async { [weak self] in
+                self?.cacheStatus[urlString] = .cached
+            }
             completion(true)
             return
         }
@@ -114,6 +116,50 @@ class MediaCacheManager: ObservableObject {
         
         group.notify(queue: .main) { [weak self] in
             self?.isLoading = false
+        }
+    }
+    
+    /// Aktif gönderi ve etrafındaki 2'şer gönderiyi cache'le
+    func preloadImagesForActivePost(posts: [Post], activePostIndex: Int) {
+        DispatchQueue.main.async { [weak self] in
+            self?.isLoading = true
+        }
+        
+        // Aktif gönderi ve etrafındaki 2'şer gönderiyi seç
+        let startIndex = max(0, activePostIndex - 2)
+        let endIndex = min(posts.count - 1, activePostIndex + 2)
+        
+        let postsToCache = Array(posts[startIndex...endIndex])
+        
+        let imagePosts = postsToCache.filter { post in
+            post.mediaType == "image" && 
+            post.mediaURL != nil
+        }
+        
+        // Önce cache'i temizle (sadece image cache'i)
+        clearImageCache()
+        
+        let group = DispatchGroup()
+        
+        for post in imagePosts {
+            guard let mediaURL = post.mediaURL else { continue }
+            
+            group.enter()
+            preloadImage(from: mediaURL) { success in
+                group.leave()
+            }
+        }
+        
+        group.notify(queue: .main) { [weak self] in
+            self?.isLoading = false
+        }
+    }
+    
+    /// Sadece image cache'ini temizle
+    private func clearImageCache() {
+        DispatchQueue.main.async { [weak self] in
+            self?.imageCache.removeAllObjects()
+            self?.cacheStatus.removeAll()
         }
     }
     
