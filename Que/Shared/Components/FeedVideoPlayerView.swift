@@ -13,6 +13,7 @@ struct FeedVideoPlayerView: UIViewRepresentable {
     var onDoubleTap: (() -> Void)?
     var onLongPress: (() -> Void)?
     var onLongPressStateChanged: ((Bool) -> Void)? // Uzun basma durumu değişikliği için callback
+    var onSpeedChanged: ((Int) -> Void)? // 1x/2x/3x/4x hız değişimi
     var isVisible: Bool = true // Post görünür mü?
 
     func makeUIView(context: Context) -> FeedPlayerView {
@@ -32,6 +33,7 @@ struct FeedVideoPlayerView: UIViewRepresentable {
         view.onDoubleTap = onDoubleTap
         view.onLongPress = onLongPress
         view.onLongPressStateChanged = onLongPressStateChanged
+        view.onSpeedChanged = onSpeedChanged
         return view
     }
 
@@ -91,11 +93,19 @@ class FeedPlayerView: UIView {
     var onDoubleTap: (() -> Void)?
     var onLongPress: (() -> Void)?
     var onLongPressStateChanged: ((Bool) -> Void)? // Uzun basma durumu değişikliği için callback
+    var onSpeedChanged: ((Int) -> Void)? // Hız seviyesi değişimi bildirimi (1/2/3/4)
     
     private var isPlaying = true
     private var isLongPressing = false // Uzun basma durumu
     private let normalPlaybackRate: Float = 1.0 // Normal hız
-    private let fastPlaybackRate: Float = 2.0 // Hızlı oynatma hızı
+    private let fastPlaybackRate: Float = 2.0 // 2x hız
+    private let fasterPlaybackRate: Float = 3.0 // 3x hız
+    private let fastestPlaybackRate: Float = 4.0 // 4x hız
+    private let minBufferFor3x: Double = 3.5 // saniye
+    private let minBufferFor4x: Double = 6.0 // saniye
+    private var speedLevel: Int = 1 // 1,2,3,4
+    private var longPressStartY: CGFloat = 0
+    private let speedThreshold: CGFloat = 60 // her ~60pt yukarıda bir seviye
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -113,11 +123,55 @@ class FeedPlayerView: UIView {
     
     // MARK: - Playback helpers (DRY)
     private func applyPlaybackRate() {
-        if isLongPressing {
-            player?.rate = fastPlaybackRate
-        } else {
-            player?.rate = normalPlaybackRate
+        guard let player else { return }
+        // Başta stalling'i minimize et
+        player.automaticallyWaitsToMinimizeStalling = true
+
+        let desiredLevel = isLongPressing ? max(2, min(4, speedLevel)) : 1
+        var allowedLevel = desiredLevel
+
+        // Buffer ve keep-up durumuna göre kademeli düşürme
+        let ahead = bufferedAheadSeconds()
+        if desiredLevel >= 4 {
+            if ahead < minBufferFor4x { allowedLevel = (ahead >= minBufferFor3x) ? 3 : 2 }
+        } else if desiredLevel >= 3 {
+            if ahead < minBufferFor3x { allowedLevel = 2 }
         }
+        if allowedLevel >= 3, let item = player.currentItem, item.isPlaybackLikelyToKeepUp == false {
+            allowedLevel = 2
+        }
+
+        let targetRate: Float
+        if isLongPressing {
+            switch allowedLevel {
+            case 4: targetRate = 2.5   // UI: 4x, effective: 2.5x
+            case 3: targetRate = 2.2   // UI: 3x, effective: 2.2x
+            case 2: targetRate = 2.0   // UI: 2x, effective: 2.0x
+            default: targetRate = 1.0
+            }
+        } else {
+            allowedLevel = 1
+            targetRate = 1.0
+        }
+        player.rate = targetRate
+        print("FeedVideoPlayer: applyPlaybackRate -> desired=\(desiredLevel) allowed=\(allowedLevel) isLongPressing=\(isLongPressing) rate=\(targetRate) ahead=\(String(format: "%.2f", ahead)) keepUp=\(player.currentItem?.isPlaybackLikelyToKeepUp ?? true)")
+    }
+
+    private func bufferedAheadSeconds() -> Double {
+        guard let item = playerItem else { return 0 }
+        let current = player?.currentTime() ?? .zero
+        let curSec = CMTimeGetSeconds(current)
+        var ahead: Double = 0
+        for value in item.loadedTimeRanges {
+            let range = value.timeRangeValue
+            let start = CMTimeGetSeconds(range.start)
+            let end = start + CMTimeGetSeconds(range.duration)
+            if curSec >= start && curSec <= end {
+                ahead = max(0, end - curSec)
+                break
+            }
+        }
+        return ahead
     }
 
     private func playFromStartAndNotify() {
@@ -297,15 +351,12 @@ class FeedPlayerView: UIView {
             object: playerItem,
             queue: .main
         ) { [weak self] _ in
-            self?.player?.seek(to: .zero)
-            if self?.isVisible == true {
-                self?.player?.play()
-                // Video yeniden başladığında mevcut hız durumunu koru
-                if self?.isLongPressing == true {
-                    self?.player?.rate = self?.fastPlaybackRate ?? 2.0
-                } else {
-                    self?.player?.rate = self?.normalPlaybackRate ?? 1.0
-                }
+            guard let self = self else { return }
+            self.player?.seek(to: .zero)
+            if self.isVisible {
+                self.player?.play()
+                // Mevcut hız seviyesini uygula (2x/3x/4x destekli)
+                self.applyPlaybackRate()
             }
         }
         
@@ -375,19 +426,34 @@ class FeedPlayerView: UIView {
         
         switch gesture.state {
         case .began:
-            // Uzun basma başladı - hızı artır
+            // Uzun basma başladı: 2x ile başla
             isLongPressing = true
-            player?.rate = fastPlaybackRate
-            print("Video hızı 2x'e çıkarıldı")
+            speedLevel = 2
+            longPressStartY = gesture.location(in: self).y
+            applyPlaybackRate()
+            print("Video hızı 2x'e çıkarıldı (başlangıç)")
             onLongPressStateChanged?(isLongPressing)
-            
+            onSpeedChanged?(speedLevel)
+        case .changed:
+            guard isLongPressing else { break }
+            let currentY = gesture.location(in: self).y
+            let delta = longPressStartY - currentY // yukarı pozitif
+            let additionalLevels = Int(delta / speedThreshold)
+            let newLevel = max(2, min(4, 2 + additionalLevels))
+            if newLevel != speedLevel {
+                speedLevel = newLevel
+                applyPlaybackRate()
+                print("Video hızı \(speedLevel)x oldu (kaydırma)")
+                onSpeedChanged?(speedLevel)
+            }
         case .ended, .cancelled, .failed:
-            // Uzun basma bitti - hızı normale döndür
+            // Uzun basma bitti: 1x'e dön
             isLongPressing = false
-            player?.rate = normalPlaybackRate
+            speedLevel = 1
+            applyPlaybackRate()
             print("Video hızı normale döndü")
             onLongPressStateChanged?(isLongPressing)
-            
+            onSpeedChanged?(speedLevel)
         default:
             break
         }
@@ -474,6 +540,7 @@ struct FeedVideoPlayerViewContainer: View {
     @State private var showIcon = false
     @State private var iconType: PlayPauseIconType = .pause
     @State private var isLongPressing = false // Uzun basma durumu
+    @State private var speedLevel: Int = 1
     
     var body: some View {
         ZStack {
@@ -491,6 +558,9 @@ struct FeedVideoPlayerViewContainer: View {
                 },
                 onLongPressStateChanged: { isLongPressing in
                     self.isLongPressing = isLongPressing
+                },
+                onSpeedChanged: { level in
+                    self.speedLevel = level
                 },
                 isVisible: isVisible
             )
@@ -524,7 +594,7 @@ struct FeedVideoPlayerViewContainer: View {
                     Spacer()
                     HStack {
                         Spacer()
-                        Text("Hız 2x")
+                        Text("Hız \(speedLevel)x")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
