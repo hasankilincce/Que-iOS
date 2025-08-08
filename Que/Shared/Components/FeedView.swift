@@ -52,6 +52,12 @@ struct FeedView: View {
                    !feedManager.isLoading {
                     feedManager.loadMorePosts()
                 }
+
+                // Görsel post görünür olduğunda tüm video player'ları pause et
+                let currentPost = feedManager.posts[currentIndex]
+                if (currentPost.mediaType ?? "").lowercased() != "video" {
+                    NotificationCenter.default.post(name: NSNotification.Name("PauseAllVideoPlayers"), object: nil)
+                }
             }
         }
         .refreshable {

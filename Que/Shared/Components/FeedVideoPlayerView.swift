@@ -66,9 +66,15 @@ class FeedPlayerView: UIView {
             queue: .main
         ) { _ in
             // Clean up any registered players
-            for view in activeViews.allObjects {
-                view.cleanupPlayer()
-            }
+            for view in activeViews.allObjects { view.forceCleanupPlayer() }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("PauseAllVideoPlayers"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            for view in activeViews.allObjects { view.pauseAndNotify() }
         }
     }
 
@@ -105,6 +111,37 @@ class FeedPlayerView: UIView {
         setupAppLifecycleObservers()
     }
     
+    // MARK: - Playback helpers (DRY)
+    private func applyPlaybackRate() {
+        if isLongPressing {
+            player?.rate = fastPlaybackRate
+        } else {
+            player?.rate = normalPlaybackRate
+        }
+    }
+
+    private func playFromStartAndNotify() {
+        guard let player else { return }
+        player.seek(to: .zero)
+        player.play()
+        isPlaying = true
+        onPlayPauseToggle?(true)
+        applyPlaybackRate()
+    }
+
+    private func ensurePlayIfVisible() {
+        guard isVisible, let player else { return }
+        player.play()
+        isPlaying = true
+        applyPlaybackRate()
+    }
+
+    private func pauseAndNotify() {
+        player?.pause()
+        isPlaying = false
+        onPlayPauseToggle?(false)
+    }
+
     private func setupAppLifecycleObservers() {
         // Uygulama arka plana geçtiğinde video'yu durdur
         NotificationCenter.default.addObserver(
@@ -124,37 +161,17 @@ class FeedPlayerView: UIView {
             self?.resumeVideoOnForeground()
         }
         
-        // Feed yenilendiğinde tüm video player'ları temizle
-        NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("CleanupAllVideoPlayers"),
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.forceCleanupPlayer()
-        }
     }
     
     private func pauseVideoOnBackground() {
         print("FeedVideoPlayer: Uygulama arka plana geçti - Video durduruluyor - Post ID: \(postID)")
-        player?.pause()
-        isPlaying = false
-        onPlayPauseToggle?(false)
+        pauseAndNotify()
     }
     
     private func resumeVideoOnForeground() {
         print("FeedVideoPlayer: Uygulama ön plana geldi - Video oynatılıyor - Post ID: \(postID)")
         // Uygulama ön plana geldiğinde video'yu otomatik olarak oynat
-        if isVisible {
-            player?.play()
-            isPlaying = true
-            onPlayPauseToggle?(true)
-            // Mevcut hız durumunu koru
-            if isLongPressing {
-                player?.rate = fastPlaybackRate
-            } else {
-                player?.rate = normalPlaybackRate
-            }
-        }
+        ensurePlayIfVisible()
     }
     
     private func setupGestures() {
@@ -299,17 +316,7 @@ class FeedPlayerView: UIView {
     
     func setPlaying(_ playing: Bool) {
         isPlaying = playing
-        if playing && isVisible {
-            player?.play()
-            // Mevcut hız durumunu koru
-            if isLongPressing {
-                player?.rate = fastPlaybackRate
-            } else {
-                player?.rate = normalPlaybackRate
-            }
-        } else {
-            player?.pause()
-        }
+        if playing && isVisible { ensurePlayIfVisible() } else { player?.pause() }
     }
     
     func setVisibility(_ visible: Bool) {
@@ -321,13 +328,7 @@ class FeedPlayerView: UIView {
             print("FeedVideoPlayer: Video görünür hale geldi - Post ID: \(postID)")
             startVideoWithRetry()
         } else if visible && isPlaying {
-            player?.play()
-            // Mevcut hız durumunu koru
-            if isLongPressing {
-                player?.rate = fastPlaybackRate
-            } else {
-                player?.rate = normalPlaybackRate
-            }
+            ensurePlayIfVisible()
         } else {
             player?.pause()
         }
@@ -346,17 +347,7 @@ class FeedPlayerView: UIView {
         }
         
         // Video'yu baştan başlat ve anında oynat
-        player.seek(to: .zero)
-        player.play()
-        isPlaying = true
-        onPlayPauseToggle?(true)
-        
-        // Mevcut hız durumunu koru
-        if isLongPressing {
-            player.rate = fastPlaybackRate
-        } else {
-            player.rate = normalPlaybackRate
-        }
+        playFromStartAndNotify()
         
         print("FeedVideoPlayer: Video başlatıldı - Post ID: \(postID)")
     }
@@ -364,38 +355,14 @@ class FeedPlayerView: UIView {
     func restartVideo() {
         guard let player = player else { return }
         
-        // Video'yu baştan başlat ve anında oynat
-        player.seek(to: .zero)
-        if isVisible {
-            player.play()
-            isPlaying = true
-            // Mevcut hız durumunu koru
-            if isLongPressing {
-                player.rate = fastPlaybackRate
-            } else {
-                player.rate = normalPlaybackRate
-            }
-        }
+        // Video'yu baştan başlat ve anında oynat (görünürse)
+        if isVisible { playFromStartAndNotify() } else { player.seek(to: .zero) }
     }
     
     @objc private func handleTap() {
         guard let player = player else { return }
         
-        if isPlaying {
-            player.pause()
-            isPlaying = false
-        } else {
-            player.play()
-            isPlaying = true
-            // Mevcut hız durumunu koru
-            if isLongPressing {
-                player.rate = fastPlaybackRate
-            } else {
-                player.rate = normalPlaybackRate
-            }
-        }
-        
-        onPlayPauseToggle?(isPlaying)
+        if isPlaying { pauseAndNotify() } else { ensurePlayIfVisible(); onPlayPauseToggle?(isPlaying) }
     }
     
     @objc private func handleDoubleTap() {
@@ -436,7 +403,6 @@ class FeedPlayerView: UIView {
         // App lifecycle observer'larını temizle
         NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: NSNotification.Name("CleanupAllVideoPlayers"), object: nil)
         
         // Tüm ses/oynatma durumunu kesin olarak durdur
         hardStopAudio()
