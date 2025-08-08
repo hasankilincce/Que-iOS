@@ -688,6 +688,12 @@ firestoreManager.fetchPostsForFeed { posts in
   - `HomeViewModel.setupFeedNotificationHandling()` fonksiyonu ile notification dinlenir
   - İlk post'un ID'si `feedVisibleID`'ye atanır
   - İlk post görünür hale gelir ve video otomatik olarak başlar
+- **Video Player Cleanup Sistemi:**
+  - `CleanupAllVideoPlayers` notification sistemi eklendi
+  - Feed yenilendiğinde tüm aktif video player'lar durdurulur ve temizlenir
+  - `FeedManager.refreshPosts()` fonksiyonunda notification gönderilir
+  - `FeedVideoPlayerView`'da notification listener ile `forceCleanupPlayer()` çağrılır
+  - Eski video'nun sesi devam etme sorunu çözüldü
 
 **Dosyalar:**
 - `Que/Shared/Components/FeedVideoPlayerView.swift` - Video hızı kontrolü sistemi
@@ -737,6 +743,52 @@ firestoreManager.fetchPostsForFeed { posts in
 
 **Dosyalar:**
 - `Que/Shared/Components/FeedVideoPlayerView.swift` - AVURLAsset optimizasyonu
+
+**Build Durumu:** ✅ Başarılı
+
+---
+
+## Post Görüntüleme Süresi Takibi
+
+**Tarih:** 8 Ağustos 2025
+
+**Özellik:** Her post'ta ne kadar süre geçirildiğini takip eden sistem eklendi. Video ya da fotoğraf post'u farketmeksizin tüm post'lar için süre takibi yapılır.
+
+**Teknik Detaylar:**
+- `PostView`'a `@State` değişkenler eklendi: `viewStartTime` ve `totalViewDuration`
+- `isVisible` parameter'ındaki değişiklikleri `onChange` ile takip edilir
+- Post görünür hale geldiğinde `startViewTracking()` çağrılır
+- Post görünmez hale geldiğinde `endViewTracking()` çağrılır
+- Konsol'da detaylı süre bilgileri print edilir:
+  - Post ID'si
+  - Bu oturum süresi (saniye)
+  - Toplam görüntüleme süresi (saniye)
+  - Post tipi (video/fotoğraf/metin)
+
+**Dosyalar:**
+- `Que/Shared/Components/PostView.swift` - Post süre takip sistemi
+
+**Build Durumu:** ✅ Başarılı
+
+---
+
+## Feed Yenileme Video Player Sorunu Çözümü
+
+**Tarih:** 8 Ağustos 2025
+
+**Problem:** Feed yenilendiğinde ilk video'lar yüklenmiyor ve sürekli "Player henüz hazır değil" hatası alınıyordu.
+
+**Çözüm:** Video player'ın düzgün initialize edilmesi için `updateUIView` fonksiyonuna otomatik configure kontrolü eklendi.
+
+**Teknik Detaylar:**
+- `FeedVideoPlayerView.updateUIView` fonksiyonunda `isConfigured` kontrolü eklendi
+- Player henüz configure edilmemişse otomatik olarak `configure` fonksiyonu çağrılır
+- `isConfigured` property'si public yapıldı
+- `startVideoWithRetry` fonksiyonuna detaylı debug logları eklendi
+- Feed yenilendiğinde video player'lar düzgün şekilde initialize edilir
+
+**Dosyalar:**
+- `Que/Shared/Components/FeedVideoPlayerView.swift` - Video player initialize düzeltmesi
 
 **Build Durumu:** ✅ Başarılı
 

@@ -37,6 +37,13 @@ struct FeedVideoPlayerView: UIViewRepresentable {
 
     func updateUIView(_ uiView: FeedPlayerView, context: Context) {
         uiView.updateLayerFrame()
+        
+        // Player henüz configure edilmemişse configure et
+        if !uiView.isConfigured {
+            print("FeedVideoPlayer: Player henüz configure edilmemiş, configure ediliyor - Post ID: \(postID)")
+            uiView.configure(url: videoURL, postID: postID)
+        }
+        
         uiView.setPlaying(isPlaying)
         uiView.setVisibility(isVisible)
     }
@@ -47,10 +54,30 @@ struct FeedVideoPlayerView: UIViewRepresentable {
 }
 
 class FeedPlayerView: UIView {
+    // MARK: - Global registry to stop any stray audio
+    private static let activeViews = NSHashTable<FeedPlayerView>.weakObjects()
+    private static var hasInstalledGlobalCleanupObserver: Bool = false
+    private static func installGlobalCleanupObserverIfNeeded() {
+        guard !hasInstalledGlobalCleanupObserver else { return }
+        hasInstalledGlobalCleanupObserver = true
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("CleanupAllVideoPlayers"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            // Clean up any registered players
+            for view in activeViews.allObjects {
+                view.cleanupPlayer()
+            }
+        }
+    }
+
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
     private var playerItem: AVPlayerItem?
-    private var isConfigured = false
+    var isConfigured = false // Public yapıldı
+    var isConfiguring = false // Yeni: eşzamanlı configure'ları engellemek için
+    private var configureToken: Int = 0 // Yeni: asenkron asset yüklemelerini tekilleştirmek için
     private var postID: String = ""
     private var isVisible = true
     
@@ -66,12 +93,14 @@ class FeedPlayerView: UIView {
     
     override init(frame: CGRect) {
         super.init(frame: frame)
+        FeedPlayerView.installGlobalCleanupObserverIfNeeded()
         setupGestures()
         setupAppLifecycleObservers()
     }
     
     required init?(coder: NSCoder) {
         super.init(coder: coder)
+        FeedPlayerView.installGlobalCleanupObserverIfNeeded()
         setupGestures()
         setupAppLifecycleObservers()
     }
@@ -93,6 +122,15 @@ class FeedPlayerView: UIView {
             queue: .main
         ) { [weak self] _ in
             self?.resumeVideoOnForeground()
+        }
+        
+        // Feed yenilendiğinde tüm video player'ları temizle
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("CleanupAllVideoPlayers"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.forceCleanupPlayer()
         }
     }
     
@@ -138,10 +176,46 @@ class FeedPlayerView: UIView {
         tap.require(toFail: doubleTap)
     }
 
+    // MARK: - Hard stop helpers
+    private func hardStopAudio() {
+        // Tam durdurma: pause + item'ı kaldır + rate=0
+        player?.pause()
+        player?.rate = 0
+        player?.replaceCurrentItem(with: nil)
+    }
+
+    private func cancelPendingLoads() {
+        if let item = playerItem {
+            item.cancelPendingSeeks()
+            item.asset.cancelLoading()
+        }
+    }
+
+    private static func deactivateAudioSessionIfNoActivePlayers() {
+        // Kalan aktif view yoksa ses oturumunu pasifleştirmeyi dene
+        if activeViews.allObjects.isEmpty {
+            do {
+                try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+            } catch {
+                print("FeedVideoPlayer: AVAudioSession deactivate error: \(error)")
+            }
+        }
+    }
+
     func configure(url: URL, postID: String) {
-        if isConfigured { return }
+        // Zaten configure edilmiş veya edilmekteyse tekrarlama
+        if isConfigured || isConfiguring { return }
         self.postID = postID
+
+        // Önce mevcut player'ı temizle (gerekirse)
+        // Not: cleanupPlayer configureToken'ı artırır, bu yüzden cleanup'tan
+        // sonra yeni bir token ile devam edeceğiz
         cleanupPlayer()
+
+        // Yeni bir configure denemesi başlat
+        isConfiguring = true
+        let nextToken = configureToken + 1
+        configureToken = nextToken
         
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
@@ -157,7 +231,15 @@ class FeedPlayerView: UIView {
         let keys = ["playable", "tracks", "duration"]
         asset.loadValuesAsynchronously(forKeys: keys) { [weak self] in
             DispatchQueue.main.async {
-                self?.setupPlayerWithAsset(asset)
+                guard let self = self else { return }
+                // Yalnızca en güncel configure isteği sonuçlandığında ilerle
+                guard self.configureToken == nextToken else {
+                    // Eski bir configure tamamlandı, yok say
+                    return
+                }
+                self.setupPlayerWithAsset(asset)
+                // setup tamamlandıktan sonra artık configuring değiliz
+                self.isConfiguring = false
             }
         }
     }
@@ -211,6 +293,8 @@ class FeedPlayerView: UIView {
         }
         
         isConfigured = true
+        // Register to global registry
+        FeedPlayerView.activeViews.add(self)
     }
     
     func setPlaying(_ playing: Bool) {
@@ -250,6 +334,8 @@ class FeedPlayerView: UIView {
     }
     
     private func startVideoWithRetry() {
+        print("FeedVideoPlayer: startVideoWithRetry çağrıldı - Post ID: \(postID), player: \(player != nil), isConfigured: \(isConfigured)")
+        
         guard let player = player else {
             // Player henüz hazır değilse 1 saniye sonra tekrar dene
             print("FeedVideoPlayer: Player henüz hazır değil, 1 saniye sonra tekrar deneniyor - Post ID: \(postID)")
@@ -350,15 +436,55 @@ class FeedPlayerView: UIView {
         // App lifecycle observer'larını temizle
         NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name("CleanupAllVideoPlayers"), object: nil)
         
-        player?.pause()
+        // Tüm ses/oynatma durumunu kesin olarak durdur
+        hardStopAudio()
+        cancelPendingLoads()
         player = nil
         playerItem = nil
         playerLayer?.removeFromSuperlayer()
         playerLayer = nil
         isConfigured = false
+        isConfiguring = false
+        // Mevcut ve bekleyen asenkron configure'ları geçersiz kıl
+        configureToken += 1
+        // Remove from global registry
+        FeedPlayerView.activeViews.remove(self)
+        FeedPlayerView.deactivateAudioSessionIfNoActivePlayers()
     }
     
+    private func forceCleanupPlayer() {
+        print("FeedVideoPlayer: Feed yenilendi, player temizleniyor - Post ID: \(postID)")
+        
+        // Video'yu hemen durdur
+        hardStopAudio()
+        cancelPendingLoads()
+        isPlaying = false
+        isLongPressing = false
+        
+        // Player'ı tamamen temizle
+        if let playerItem = self.playerItem {
+            NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
+        }
+        
+        player = nil
+        playerItem = nil
+        playerLayer?.removeFromSuperlayer()
+        playerLayer = nil
+        isConfigured = false
+        isConfiguring = false
+        // Bekleyen yüklemeleri geçersiz kıl
+        configureToken += 1
+        // Remove from global registry
+        FeedPlayerView.activeViews.remove(self)
+        FeedPlayerView.deactivateAudioSessionIfNoActivePlayers()
+        
+        // UI güncelle
+        onPlayPauseToggle?(false)
+        onLongPressStateChanged?(false)
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         updateLayerFrame()

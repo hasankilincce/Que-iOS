@@ -4,6 +4,10 @@ struct PostView: View {
     let post: Post
     let isVisible: Bool
     
+    // Post süre takibi için değişkenler
+    @State private var viewStartTime: Date?
+    @State private var totalViewDuration: TimeInterval = 0
+    
     // Post ID'sine göre rastgele renk seçimi
     private var backgroundColor: Color {
         let colors: [Color] = [
@@ -83,5 +87,50 @@ struct PostView: View {
             }
         }
         .ignoresSafeArea(.all, edges: .all)
+        .onChange(of: isVisible) { _, newValue in
+            if newValue {
+                // Post görünür hale geldi - süre takibini başlat
+                startViewTracking()
+            } else {
+                // Post görünmez hale geldi - süre takibini bitir
+                endViewTracking()
+            }
+        }
+        .onAppear {
+            // İlk açılışta post görünürse süre takibini başlat
+            if isVisible {
+                startViewTracking()
+            }
+        }
+        .onDisappear {
+            // PostView tamamen ekrandan çıktığında süre takibini bitir
+            endViewTracking()
+        }
+    }
+    
+    // MARK: - View Tracking Methods
+    
+    private func startViewTracking() {
+        guard viewStartTime == nil else { return } // Zaten başlatılmışsa tekrar başlatma
+        
+        viewStartTime = Date()
+        print("📊 Post görüntüleme başladı - Post ID: \(post.id) - Başlangıç: \(Date())")
+    }
+    
+    private func endViewTracking() {
+        guard let startTime = viewStartTime else { return } // Başlangıç zamanı yoksa işlem yapma
+        
+        let endTime = Date()
+        let duration = endTime.timeIntervalSince(startTime)
+        totalViewDuration += duration
+        
+        print("📊 Post görüntüleme bitti - Post ID: \(post.id)")
+        print("📊 Bu oturum süresi: \(String(format: "%.2f", duration)) saniye")
+        print("📊 Toplam görüntüleme süresi: \(String(format: "%.2f", totalViewDuration)) saniye")
+        print("📊 Post Tipi: \(post.mediaType ?? "metin")")
+        print("📊 ---")
+        
+        // Başlangıç zamanını sıfırla
+        viewStartTime = nil
     }
 }

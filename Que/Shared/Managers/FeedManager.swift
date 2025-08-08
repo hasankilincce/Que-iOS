@@ -84,6 +84,9 @@ class FeedManager: ObservableObject {
     
     /// Gönderileri yenile
     func refreshPosts() {
+        // Önce tüm aktif video player'ları durdur ve temizle
+        NotificationCenter.default.post(name: NSNotification.Name("CleanupAllVideoPlayers"), object: nil)
+        
         firestoreManager.resetPagination()
         lastDocument = nil
         hasMorePosts = true
