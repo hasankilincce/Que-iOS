@@ -19,6 +19,28 @@ struct PostView: View {
         return colors[colorIndex]
     }
     
+    // PostCreationView'deki rozetin feed'e uyarlanmış hali
+    private var postTypeBadge: some View {
+        HStack(spacing: 8) {
+            Image(systemName: post.postType.icon)
+                .font(.caption.weight(.semibold))
+            Text(post.postType.displayName)
+                .font(.caption.weight(.bold))
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Capsule()
+                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -52,24 +74,25 @@ struct PostView: View {
                         }
                     }
                 }
-    
-                // Text content overlay
-                VStack(spacing: 20) {
-                    Spacer()
+                
+                // Üst-sol: Post türü rozeti + metin (PostCreationView stilinde)
+                VStack(alignment: .leading, spacing: 12) {
+                    // Güvenli alan + ekstra boşluk (biraz daha aşağıda başlasın)
+                    Spacer().frame(height: max(geometry.safeAreaInsets.top + 40, 60))
+                    
+                    postTypeBadge
+                    
                     Text(post.content)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                        .font(.system(size: 24, weight: .medium, design: .rounded))
                         .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                    Text(post.displayName)
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                    Spacer()
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(1...6)
+                        .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
                 }
-                .frame(width: geometry.size.width, height: geometry.size.height)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.trailing, 40)
+                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
 
                 // Overlay (like/comment/share vs.)
                 VStack {
@@ -79,6 +102,54 @@ struct PostView: View {
                     }
                     .padding()
                     Spacer()
+                }
+
+                // Alt bilgi çubuğu: kullanıcı fotoğrafı, görünen ad, kullanıcı adı ve paylaşılma zamanı
+                VStack {
+                    Spacer()
+                    HStack(alignment: .center, spacing: 12) {
+                        if let photo = post.userPhotoURL, let url = URL(string: photo) {
+                            CachedAsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+                            } placeholder: {
+                                Circle()
+                                    .fill(Color.white.opacity(0.25))
+                                    .frame(width: 40, height: 40)
+                            }
+                        } else {
+                            Circle()
+                                .fill(Color.white.opacity(0.25))
+                                .frame(width: 40, height: 40)
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(post.displayName)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            HStack(spacing: 6) {
+                                Text("@\(post.username)")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .lineLimit(1)
+                                Text("·")
+                                    .foregroundColor(.white.opacity(0.6))
+                                Text(post.timeAgo)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .lineLimit(1)
+                            }
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom + 120) // CustomTabBar üstünde konumla
+                    .shadow(color: .black.opacity(0.6), radius: 8, x: 0, y: 2)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
