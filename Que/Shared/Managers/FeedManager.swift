@@ -3,291 +3,226 @@ import Firebase
 import FirebaseFirestore
 import FirebaseAuth
 
+@MainActor
 class FeedManager: ObservableObject {
-    @Published var posts: [Post] = []
+    @Published private(set) var posts: [Post] = []
     @Published var isLoading = false
     @Published var hasMorePosts = true
     @Published var currentIndex = 0
-    @Published var activePostIndex = 0 // Aktif post index'ini takip et
+    @Published var activePostIndex = 0
     @Published var error: String?
-    
+
     private let firestoreManager = FirestoreDataManager()
     private let mediaCacheManager = MediaCacheManager.shared
     private let db = Firestore.firestore()
-    private var lastDocument: DocumentSnapshot?
+
     private let postsPerPage = 10
-    private var startIndex: Int = 0
-    
+
+    // duplicate ve preload takibi
+    private var idSet = Set<String>()
+    private var lastPreloadedCount = 0
+
+    // pagination spam’ini önlemek için basit debounce
+    private var lastLoadMoreTime: TimeInterval = 0
+    private let loadMoreCooldown: TimeInterval = 0.6
+
     init(startIndex: Int = 0) {
-        self.startIndex = startIndex
+        self.currentIndex = startIndex
         loadPosts()
     }
-    
-    // MARK: - Public Methods
-    
-    /// İlk gönderileri yükle
+
+    // MARK: - İlk yükleme
     func loadPosts() {
         guard !isLoading else { return }
-        
         isLoading = true
         error = nil
-        
-        // Firestore'dan veri çek
-        firestoreManager.fetchPostsForFeed { [weak self] fetchedPosts in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if !fetchedPosts.isEmpty {
-                    // Firestore'dan gelen verileri kullan
-                    self?.posts = fetchedPosts
-                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
-                    
-                    // İlk post yüklendiğinde feedVisibleID'yi ilk post'un ID'si olarak ayarla
-                    if let firstPost = fetchedPosts.first {
-                        // HomeViewModel'da feedVisibleID'yi güncelle
+
+        firestoreManager.fetchPostsForFeed { [weak self] fetched in
+            Task { @MainActor in
+                guard let self else { return }
+                self.isLoading = false
+
+                if !fetched.isEmpty {
+                    self.applyNewSnapshotReplacing(fetched)
+                    self.hasMorePosts = fetched.count >= self.postsPerPage
+
+                    if let first = fetched.first {
                         NotificationCenter.default.post(
                             name: NSNotification.Name("SetFirstPostVisible"),
-                            object: firstPost.id
+                            object: first.id
                         )
                     }
                 }
-                
-                // Yeni postlar için image'ları preload et
-                self?.preloadImagesForNewPosts()
+                self.preloadImagesForNewPosts()
             }
         }
     }
-    
-    /// Daha fazla gönderi yükle (pagination)
+
+    // MARK: - Pagination
     func loadMorePosts() {
         guard !isLoading && hasMorePosts else { return }
-        
         isLoading = true
         error = nil
-        
-        firestoreManager.fetchMorePosts { [weak self] fetchedPosts in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if fetchedPosts.isEmpty {
-                    self?.hasMorePosts = false
+
+        firestoreManager.fetchMorePosts { [weak self] fetched in
+            Task { @MainActor in
+                guard let self else { return }
+                self.isLoading = false
+
+                if fetched.isEmpty {
+                    self.hasMorePosts = false
                 } else {
-                    self?.posts.append(contentsOf: fetchedPosts)
-                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
-                    
-                    // Yeni postlar için image'ları preload et
-                    self?.preloadImagesForNewPosts()
+                    self.appendUnique(fetched)
+                    self.hasMorePosts = fetched.count >= self.postsPerPage
+                    self.preloadImagesForNewPosts()
                 }
             }
         }
     }
-    
-    /// Gönderileri yenile
+
+    /// Görünür indeks değişiminde “end reached” kontrolü (+ küçük debounce)
+    func maybeLoadMore(afterIndex index: Int) {
+        let now = Date().timeIntervalSince1970
+        guard now - lastLoadMoreTime > loadMoreCooldown else { return }
+
+        if index >= posts.count - 2, hasMorePosts, !isLoading {
+            lastLoadMoreTime = now
+            loadMorePosts()
+        }
+    }
+
+    // MARK: - Refresh
     func refreshPosts() {
-        // Önce tüm aktif video player'ları durdur ve temizle
         NotificationCenter.default.post(name: NSNotification.Name("CleanupAllVideoPlayers"), object: nil)
-        
+
         firestoreManager.resetPagination()
-        lastDocument = nil
         hasMorePosts = true
-        posts = []
-        
-        // Cache'i temizle
+        posts.removeAll()
+        idSet.removeAll()
+        lastPreloadedCount = 0
+
         mediaCacheManager.clearCache()
-        
         loadPosts()
     }
-    
-    /// Yeni postlar için image'ları preload et
+
+    // MARK: - Cache / Preload
     private func preloadImagesForNewPosts() {
-        // Background thread'de preload et
-        DispatchQueue.global(qos: .background).async { [weak self] in
-            self?.mediaCacheManager.preloadImages(from: self?.posts ?? [])
+        // Yalnızca yeni gelen aralığı preload et
+        let start = lastPreloadedCount
+        let end = posts.count
+        guard start < end else { return }
+
+        let slice = Array(posts[start..<end])
+        lastPreloadedCount = end
+
+        DispatchQueue.global(qos: .background).async { [slice, mediaCacheManager] in
+            mediaCacheManager.preloadImages(from: slice)
         }
     }
-    
-    /// Aktif post değiştiğinde cache'i güncelle
+
     func updateCacheForActivePost(index: Int) {
-        DispatchQueue.main.async { [weak self] in
-            self?.activePostIndex = index
-        }
-        
-        // Background thread'de cache güncelle
-        DispatchQueue.global(qos: .background).async { [weak self] in
-            guard let self = self else { return }
-            self.mediaCacheManager.preloadImagesForActivePost(
-                posts: self.posts,
+        activePostIndex = index
+        let snapshot = posts
+        DispatchQueue.global(qos: .background).async {
+            MediaCacheManager.shared.preloadImagesForActivePost(
+                posts: snapshot,
                 activePostIndex: index
             )
         }
     }
-    
-    /// Popüler gönderileri yükle
+
+    // MARK: - Alternatif feedler
     func loadPopularPosts() {
         guard !isLoading else { return }
-        
-        isLoading = true
-        error = nil
-        
-        firestoreManager.fetchPopularPosts { [weak self] fetchedPosts in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if fetchedPosts.isEmpty {
-                    // Popüler gönderiler yoksa normal gönderileri kullan
-                    self?.loadPosts()
-                } else {
-                    self?.posts = fetchedPosts
-                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
-                    
-                    // Yeni postlar için image'ları preload et
-                    self?.preloadImagesForNewPosts()
-                }
+        isLoading = true; error = nil
+        firestoreManager.fetchPopularPosts { [weak self] fetched in
+            Task { @MainActor in
+                guard let self else { return }
+                self.isLoading = false
+                if fetched.isEmpty { self.loadPosts(); return }
+                self.applyNewSnapshotReplacing(fetched)
+                self.hasMorePosts = fetched.count >= self.postsPerPage
+                self.preloadImagesForNewPosts()
             }
         }
     }
-    
-    /// Yeni gönderileri yükle (son 24 saat)
+
     func loadRecentPosts() {
         guard !isLoading else { return }
-        
-        isLoading = true
-        error = nil
-        
-        firestoreManager.fetchRecentPosts { [weak self] fetchedPosts in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if fetchedPosts.isEmpty {
-                    // Yeni gönderiler yoksa normal gönderileri kullan
-                    self?.loadPosts()
-                } else {
-                    self?.posts = fetchedPosts
-                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
-                    
-                    // Yeni postlar için image'ları preload et
-                    self?.preloadImagesForNewPosts()
-                }
+        isLoading = true; error = nil
+        firestoreManager.fetchRecentPosts { [weak self] fetched in
+            Task { @MainActor in
+                guard let self else { return }
+                self.isLoading = false
+                if fetched.isEmpty { self.loadPosts(); return }
+                self.applyNewSnapshotReplacing(fetched)
+                self.hasMorePosts = fetched.count >= self.postsPerPage
+                self.preloadImagesForNewPosts()
             }
         }
     }
-    
-    /// Belirli kriterlere göre gönderileri yükle
-    func loadPostsWithCriteria(
-        category: String? = nil,
-        mediaType: String? = nil,
-        userId: String? = nil
-    ) {
+
+    func loadPostsWithCriteria(category: String? = nil, mediaType: String? = nil, userId: String? = nil) {
         guard !isLoading else { return }
-        
-        isLoading = true
-        error = nil
-        
-        firestoreManager.fetchPostsWithCriteria(
-            category: category,
-            mediaType: mediaType,
-            userId: userId
-        ) { [weak self] fetchedPosts in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                if fetchedPosts.isEmpty {
-                    // Filtrelenmiş gönderiler yoksa normal gönderileri kullan
-                    self?.loadPosts()
-                } else {
-                    self?.posts = fetchedPosts
-                    self?.hasMorePosts = fetchedPosts.count >= self?.postsPerPage ?? 10
-                    
-                    // Yeni postlar için image'ları preload et
-                    self?.preloadImagesForNewPosts()
-                }
+        isLoading = true; error = nil
+
+        firestoreManager.fetchPostsWithCriteria(category: category, mediaType: mediaType, userId: userId) { [weak self] fetched in
+            Task { @MainActor in
+                guard let self else { return }
+                self.isLoading = false
+                if fetched.isEmpty { self.loadPosts(); return }
+                self.applyNewSnapshotReplacing(fetched)
+                self.hasMorePosts = fetched.count >= self.postsPerPage
+                self.preloadImagesForNewPosts()
             }
         }
     }
-    
-    /// Belirli bir gönderiyi beğen/beğenme
+
+    // MARK: - Like (optimistic)
     func toggleLike(for postId: String) {
         guard let currentUser = Auth.auth().currentUser else { return }
-        
+
         let likeRef = db.collection("posts").document(postId)
             .collection("likes").document(currentUser.uid)
-        
-        likeRef.getDocument { [weak self] snapshot, error in
-            if let document = snapshot, document.exists {
-                // Beğeniyi kaldır
+
+        likeRef.getDocument { [weak self] snap, _ in
+            guard let self else { return }
+
+            if let doc = snap, doc.exists {
+                // optimistic UI
+                self.updateLocalLikeCount(postId: postId, delta: -1)
                 likeRef.delete()
-                self?.updatePostLikeCount(postId: postId, increment: -1)
+                self.updatePostLikeCount(postId: postId, increment: -1)
             } else {
-                // Beğeniyi ekle
+                self.updateLocalLikeCount(postId: postId, delta: +1)
                 likeRef.setData([
                     "userId": currentUser.uid,
                     "timestamp": FieldValue.serverTimestamp()
                 ])
-                self?.updatePostLikeCount(postId: postId, increment: 1)
+                self.updatePostLikeCount(postId: postId, increment: +1)
             }
         }
     }
-    
-    /// Gönderi beğeni sayısını güncelle
+
+    private func updateLocalLikeCount(postId: String, delta: Int) {
+        if let idx = posts.firstIndex(where: { $0.id == postId }) {
+            var p = posts[idx]
+            p.likesCount = max(0, (p.likesCount ?? 0) + delta)
+            posts[idx] = p
+        }
+    }
+
     private func updatePostLikeCount(postId: String, increment: Int) {
         let postRef = db.collection("posts").document(postId)
-        
-        postRef.updateData([
-            "likeCount": FieldValue.increment(Int64(increment))
-        ]) { error in
-            if let error = error {
-                print("Beğeni sayısı güncelleme hatası: \(error.localizedDescription)")
-            }
+        postRef.updateData(["likeCount": FieldValue.increment(Int64(increment))]) { err in
+            if let err { print("Beğeni sayısı güncelleme hatası: \(err.localizedDescription)") }
         }
     }
-    
-    /// Gönderi paylaş
-    func sharePost(_ post: Post) {
-        // Paylaşım işlemi (gelecekte implement edilecek)
-        print("Gönderi paylaşılıyor: \(post.id)")
-    }
-    
-    /// Gönderi raporla
-    func reportPost(_ post: Post, reason: String) {
-        guard let currentUser = Auth.auth().currentUser else { return }
-        
-        let reportData: [String: Any] = [
-            "postId": post.id,
-            "reporterId": currentUser.uid,
-            "reason": reason,
-            "timestamp": FieldValue.serverTimestamp()
-        ]
-        
-        db.collection("reports").addDocument(data: reportData) { error in
-            if let error = error {
-                print("Gönderi raporlama hatası: \(error.localizedDescription)")
-            } else {
-                print("Gönderi başarıyla raporlandı")
-            }
-        }
-    }
-    
-    /// Kullanıcının gönderiyi beğenip beğenmediğini kontrol et
-    func isPostLiked(_ postId: String) -> Bool {
-        // Bu özellik gelecekte implement edilecek
-        // Şimdilik false döndürüyor
-        return false
-    }
-    
-    // MARK: - Helper Methods
-    
-    /// Gönderi sayısını döndür
-    var postCount: Int {
-        return posts.count
-    }
-    
-    /// Mevcut gönderiyi döndür
-    var currentPost: Post? {
-        guard currentIndex < posts.count else { return nil }
-        return posts[currentIndex]
-    }
-    
-    /// Bir sonraki gönderiye geç
+
+    // MARK: - Helpers
+    var postCount: Int { posts.count }
+    var currentPost: Post? { (0..<posts.count).contains(currentIndex) ? posts[currentIndex] : nil }
+
     func nextPost() {
         if currentIndex < posts.count - 1 {
             currentIndex += 1
@@ -295,22 +230,32 @@ class FeedManager: ObservableObject {
             loadMorePosts()
         }
     }
-    
-    /// Bir önceki gönderiye geç
+
     func previousPost() {
-        if currentIndex > 0 {
-            currentIndex -= 1
-        }
+        if currentIndex > 0 { currentIndex -= 1 }
     }
-    
-    /// Belirli bir indekse git
+
     func goToPost(at index: Int) {
-        guard index >= 0 && index < posts.count else { return }
+        guard posts.indices.contains(index) else { return }
         currentIndex = index
     }
-    
-    /// Hata mesajını temizle
-    func clearError() {
-        error = nil
+
+    func clearError() { error = nil }
+
+    // Yeni snapshot geldiğinde tüm state’i temiz tak kur
+    private func applyNewSnapshotReplacing(_ newPosts: [Post]) {
+        posts = []
+        idSet.removeAll()
+        lastPreloadedCount = 0
+        appendUnique(newPosts)
+    }
+
+    private func appendUnique(_ newPosts: [Post]) {
+        var appended: [Post] = []
+        for p in newPosts where !idSet.contains(p.id) {
+            idSet.insert(p.id)
+            appended.append(p)
+        }
+        if !appended.isEmpty { posts.append(contentsOf: appended) }
     }
 }
