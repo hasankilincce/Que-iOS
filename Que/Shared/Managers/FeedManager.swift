@@ -102,6 +102,7 @@ class FeedManager: ObservableObject {
         lastPreloadedCount = 0
 
         mediaCacheManager.clearCache()
+        VideoWarmupManager.shared.clear()
         loadPosts()
     }
 
@@ -129,6 +130,38 @@ class FeedManager: ObservableObject {
                 activePostIndex: index
             )
         }
+
+        // Komşu videoları HLS ön ısıtma (1-2 önce/sonra)
+        let neighborURLs = neighborVideoURLs(around: index, radius: 2)
+        if !neighborURLs.isEmpty {
+            VideoWarmupManager.shared.warm(urls: neighborURLs)
+        }
+    }
+
+    /// Verilen indeksin etrafındaki (±radius) gönderilerden video URL'lerini toplar
+    private func neighborVideoURLs(around index: Int, radius: Int = 2) -> [URL] {
+        guard !posts.isEmpty, posts.indices.contains(index) else { return [] }
+        var result: [URL] = []
+        var seen = Set<URL>()
+
+        for offset in (-radius...radius) {
+            if offset == 0 { continue }
+            let i = index + offset
+            guard posts.indices.contains(i) else { continue }
+            let p = posts[i]
+
+            // Video mu?
+            let isVideoType = (p.mediaType ?? "").lowercased() == "video" || p.hasBackgroundVideo
+            guard isVideoType else { continue }
+
+            // Uygun URL'yi seç
+            let urlString = p.backgroundVideoURL ?? p.mediaURL
+            guard let s = urlString, let u = URL(string: s) else { continue }
+
+            if !seen.contains(u) { result.append(u); seen.insert(u) }
+        }
+
+        return result
     }
 
     // MARK: - Alternatif feedler

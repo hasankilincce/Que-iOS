@@ -15,6 +15,7 @@ struct FeedVideoPlayerView: UIViewRepresentable {
     var onLongPressStateChanged: ((Bool) -> Void)? // Uzun basma durumu değişikliği için callback
     var onSpeedChanged: ((Int) -> Void)? // 1x/2x/3x/4x hız değişimi
     var isVisible: Bool = true // Post görünür mü?
+    var onReadyForDisplayChanged: ((Bool) -> Void)? // Player görüntü vermeye hazır olduğunda
 
     func makeUIView(context: Context) -> FeedPlayerView {
         let view = FeedPlayerView()
@@ -34,6 +35,7 @@ struct FeedVideoPlayerView: UIViewRepresentable {
         view.onLongPress = onLongPress
         view.onLongPressStateChanged = onLongPressStateChanged
         view.onSpeedChanged = onSpeedChanged
+        view.onReadyForDisplayChanged = onReadyForDisplayChanged
         return view
     }
 
@@ -94,6 +96,7 @@ class FeedPlayerView: UIView {
     var onLongPress: (() -> Void)?
     var onLongPressStateChanged: ((Bool) -> Void)? // Uzun basma durumu değişikliği için callback
     var onSpeedChanged: ((Int) -> Void)? // Hız seviyesi değişimi bildirimi (1/2/3/4)
+    var onReadyForDisplayChanged: ((Bool) -> Void)? // İlk frame hazır olduğunda
     
     private var isPlaying = true
     private var isLongPressing = false // Uzun basma durumu
@@ -106,6 +109,7 @@ class FeedPlayerView: UIView {
     private var speedLevel: Int = 1 // 1,2,3,4
     private var longPressStartY: CGFloat = 0
     private let speedThreshold: CGFloat = 60 // her ~60pt yukarıda bir seviye
+    private var isObservingReadyForDisplay: Bool = false
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -296,7 +300,8 @@ class FeedPlayerView: UIView {
         }
         
         // AVURLAsset ile ön ısıtma ve buffer optimizasyonu
-        let asset = AVURLAsset(url: url)
+        // Önceden ısınmış asset varsa onu kullan
+        let asset = VideoWarmupManager.shared.asset(for: url) ?? AVURLAsset(url: url)
         
         // Video'yu önceden hazırla
         let keys = ["playable", "tracks", "duration"]
@@ -333,6 +338,9 @@ class FeedPlayerView: UIView {
         playerLayer.frame = bounds
         layer.addSublayer(playerLayer)
         self.playerLayer = playerLayer
+        // isReadyForDisplay gözlemi: ilk frame hazır olunca placeholder'ı kaldırabilmek için
+        self.playerLayer?.addObserver(self, forKeyPath: "readyForDisplay", options: [.initial, .new], context: nil)
+        self.isObservingReadyForDisplay = true
         
         // Video'yu önceden hazırla ve ilk frame'i göster
         player.seek(to: .zero)
@@ -363,6 +371,30 @@ class FeedPlayerView: UIView {
         isConfigured = true
         // Register to global registry
         FeedPlayerView.activeViews.add(self)
+    }
+
+    // KVO: AVPlayerLayer.isReadyForDisplay
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        guard keyPath == "readyForDisplay", let pl = playerLayer else { return }
+        // State güncellemelerini bir sonraki runloop'a ertele
+        DispatchQueue.main.async { [weak self] in
+            self?.onReadyForDisplayChanged?(pl.isReadyForDisplay)
+        }
+    }
+
+    private func removeReadyForDisplayObserver() {
+        guard isObservingReadyForDisplay, let pl = playerLayer else { return }
+        // KVO kaldırmayı ana kuyrukta yapalım
+        if Thread.isMainThread {
+            pl.removeObserver(self, forKeyPath: "readyForDisplay")
+            isObservingReadyForDisplay = false
+        } else {
+            DispatchQueue.main.sync { [weak self] in
+                guard let self else { return }
+                pl.removeObserver(self, forKeyPath: "readyForDisplay")
+                self.isObservingReadyForDisplay = false
+            }
+        }
     }
     
     func setPlaying(_ playing: Bool) {
@@ -475,6 +507,7 @@ class FeedPlayerView: UIView {
         cancelPendingLoads()
         player = nil
         playerItem = nil
+        removeReadyForDisplayObserver()
         playerLayer?.removeFromSuperlayer()
         playerLayer = nil
         isConfigured = false
@@ -502,6 +535,7 @@ class FeedPlayerView: UIView {
         
         player = nil
         playerItem = nil
+        removeReadyForDisplayObserver()
         playerLayer?.removeFromSuperlayer()
         playerLayer = nil
         isConfigured = false
@@ -535,12 +569,14 @@ struct FeedVideoPlayerViewContainer: View {
     let videoURL: URL
     let postID: String
     let isVisible: Bool
+    var placeholderImageURL: URL? = nil
     
     @State private var isPlaying = true
     @State private var showIcon = false
     @State private var iconType: PlayPauseIconType = .pause
     @State private var isLongPressing = false // Uzun basma durumu
     @State private var speedLevel: Int = 1
+    @State private var isReadyForDisplay: Bool = false
     
     var body: some View {
         ZStack {
@@ -562,12 +598,35 @@ struct FeedVideoPlayerViewContainer: View {
                 onSpeedChanged: { level in
                     self.speedLevel = level
                 },
-                isVisible: isVisible
+                isVisible: isVisible,
+                onReadyForDisplayChanged: { ready in
+                    // View update sırasında state mutasyonu uyarısını engellemek için ana kuyruğa ertelenir
+                    DispatchQueue.main.async {
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            self.isReadyForDisplay = ready
+                        }
+                    }
+                }
             )
             .aspectRatio(9/16, contentMode: .fit)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black)
             
+            // Placeholder (ilk frame gelene kadar)
+            if let p = placeholderImageURL {
+                CachedAsyncImage(url: p) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .transition(.opacity)
+                        .animation(.easeOut(duration: 0.15), value: true)
+                } placeholder: {
+                    Color.black
+                }
+                .ignoresSafeArea()
+                .opacity(placeholderShouldShow ? 1 : 0)
+            }
+
             if showIcon || !isPlaying {
                 Group {
                     if iconType == .play {
@@ -617,5 +676,11 @@ struct FeedVideoPlayerViewContainer: View {
                 showIcon = true
             }
         }
+    }
+
+    // Placeholder görünürlüğü için basit hesap
+    private var placeholderShouldShow: Bool {
+        // Video layer ilk frame'i verene kadar göster
+        return !isReadyForDisplay && placeholderImageURL != nil
     }
 } 
