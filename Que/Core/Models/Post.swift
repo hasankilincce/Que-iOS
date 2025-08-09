@@ -74,6 +74,7 @@ struct Post: Identifiable, Codable {
     
     var timeAgo: String {
         let formatter = RelativeDateTimeFormatter()
+        formatter.locale = Locale(identifier: "tr_TR")
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: createdAt, relativeTo: Date())
     }

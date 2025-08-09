@@ -94,14 +94,52 @@ struct PostView: View {
                 .padding(.trailing, 40)
                 .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
 
-                // Overlay (like/comment/share vs.)
+                // Sağ-alt aksiyon butonları: Beğen, Beğenme, Yorum, Paylaş
                 VStack {
-                    HStack {
-                        Spacer()
-                        // butonlar burada
-                    }
-                    .padding()
                     Spacer()
+                    VStack(spacing: 10) {
+                        VStack(spacing: -6) {
+                            Button(action: {
+                                print("👍 Beğen - Post ID: \(post.id)")
+                            }) {
+                                actionButton(systemName: "heart")
+                            }
+                            Text(formatCount(post.likesCount))
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
+                        }
+                        VStack(spacing: -4) {
+                            Button(action: {
+                                print("👎 Beğenme - Post ID: \(post.id)")
+                            }) {
+                                actionButton(systemName: "hand.thumbsdown")
+                            }
+                            Text(formatCount(0))
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
+                        }
+                        VStack(spacing: -4) {
+                            Button(action: {
+                                print("💬 Yorum - Post ID: \(post.id)")
+                            }) {
+                                actionButton(systemName: "bubble.left")
+                            }
+                            Text(formatCount(post.commentsCount))
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
+                        }
+                        Button(action: {
+                            print("🔗 Paylaş - Post ID: \(post.id)")
+                        }) {
+                            actionButton(systemName: "paperplane")
+                        }
+                    }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom + 120)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
                 // Alt bilgi çubuğu: kullanıcı fotoğrafı, görünen ad, kullanıcı adı ve paylaşılma zamanı
@@ -176,6 +214,33 @@ struct PostView: View {
         .onDisappear {
             // PostView tamamen ekrandan çıktığında süre takibini bitir
             endViewTracking()
+        }
+    }
+    
+    // MARK: - Reusable Action Button
+    private func actionButton(systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 24, weight: .bold))
+            .foregroundColor(.white)
+            .frame(width: 52, height: 52)
+            .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 3)
+    }
+    
+    // Sayı kısaltma: 1k, 1.1k, 1.2M gibi
+    private func formatCount(_ count: Int) -> String {
+        let absCount = abs(Double(count))
+        let sign = (count < 0) ? "-" : ""
+        switch absCount {
+        case 0..<1000:
+            return "\(count)"
+        case 1000..<1_000_000:
+            let value = absCount / 1000
+            let formatted = (value >= 10) ? String(format: "%.0f", value) : String(format: "%.1f", value)
+            return "\(sign)\(formatted)k"
+        default:
+            let value = absCount / 1_000_000
+            let formatted = (value >= 10) ? String(format: "%.0f", value) : String(format: "%.1f", value)
+            return "\(sign)\(formatted)M"
         }
     }
     
