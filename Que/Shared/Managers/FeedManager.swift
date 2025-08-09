@@ -151,11 +151,11 @@ class FeedManager: ObservableObject {
             let p = posts[i]
 
             // Video mu?
-            let isVideoType = (p.mediaType ?? "").lowercased() == "video" || p.hasBackgroundVideo
+            let isVideoType = (p.mediaType ?? "").lowercased() == "video"
             guard isVideoType else { continue }
 
             // Uygun URL'yi seç
-            let urlString = p.backgroundVideoURL ?? p.mediaURL
+            let urlString = p.mediaURL
             guard let s = urlString, let u = URL(string: s) else { continue }
 
             if !seen.contains(u) { result.append(u); seen.insert(u) }

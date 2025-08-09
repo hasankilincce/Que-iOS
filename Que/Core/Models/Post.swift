@@ -34,12 +34,6 @@ struct Post: Identifiable, Codable {
     let content: String
     let postType: PostType
     
-    // Eski imageURLs field'ını backgroundImageURL ile değiştiriyoruz
-    // Question ve Answer'lar için tek arkaplan fotoğrafı
-    let backgroundImageURL: String?
-    
-    // Video desteği ekliyoruz
-    let backgroundVideoURL: String?
     
     // Cloud Functions ile işlenen medya için
     let mediaType: String?
@@ -65,17 +59,9 @@ struct Post: Identifiable, Codable {
         likesCount = count
     }
     
-    // Computed properties
-    var hasBackgroundImage: Bool {
-        backgroundImageURL != nil && !backgroundImageURL!.isEmpty
-    }
-    
-    var hasBackgroundVideo: Bool {
-        backgroundVideoURL != nil && !backgroundVideoURL!.isEmpty
-    }
     
     var hasBackgroundMedia: Bool {
-        hasBackgroundImage || hasBackgroundVideo || (mediaType != nil && mediaURL != nil)
+        (mediaType != nil && mediaURL != nil)
     }
     
     var isQuestion: Bool {
@@ -110,8 +96,7 @@ struct Post: Identifiable, Codable {
             self.postType = .question
         }
         
-        self.backgroundImageURL = data["backgroundImageURL"] as? String
-        self.backgroundVideoURL = data["backgroundVideoURL"] as? String
+        
         self.mediaType = data["mediaType"] as? String
         self.mediaURL = data["mediaURL"] as? String
         self.parentQuestionId = data["parentQuestionId"] as? String
@@ -124,7 +109,7 @@ struct Post: Identifiable, Codable {
     }
     
     // Manual initializer
-    init(id: String, userId: String, username: String, displayName: String, userPhotoURL: String?, content: String, postType: PostType, backgroundImageURL: String? = nil, backgroundVideoURL: String? = nil, mediaType: String? = nil, mediaURL: String? = nil, parentQuestionId: String? = nil, createdAt: Date = Date(), likesCount: Int = 0, commentsCount: Int = 0, isLiked: Bool = false, isBookmarked: Bool = false) {
+    init(id: String, userId: String, username: String, displayName: String, userPhotoURL: String?, content: String, postType: PostType, mediaType: String? = nil, mediaURL: String? = nil, parentQuestionId: String? = nil, createdAt: Date = Date(), likesCount: Int = 0, commentsCount: Int = 0, isLiked: Bool = false, isBookmarked: Bool = false) {
         self.id = id
         self.userId = userId
         self.username = username
@@ -132,8 +117,6 @@ struct Post: Identifiable, Codable {
         self.userPhotoURL = userPhotoURL
         self.content = content
         self.postType = postType
-        self.backgroundImageURL = backgroundImageURL
-        self.backgroundVideoURL = backgroundVideoURL
         self.mediaType = mediaType
         self.mediaURL = mediaURL
         self.parentQuestionId = parentQuestionId

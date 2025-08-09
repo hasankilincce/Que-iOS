@@ -57,7 +57,6 @@ struct PostView: View {
                                 videoURL: url,
                                 postID: post.id,
                                 isVisible: isVisible,
-                                placeholderImageURL: (post.backgroundImageURL != nil ? URL(string: post.backgroundImageURL!) : (post.hasBackgroundImage ? URL(string: post.backgroundImageURL ?? "") : nil))
                             )
                             .frame(width: geometry.size.width, height: geometry.size.height)
                         } else if post.mediaType == "image" {

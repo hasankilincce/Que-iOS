@@ -42,7 +42,7 @@ struct CustomTabBar: View {
                             .font(.system(size: 26, weight: .bold))
                     }
                 }
-                .offset(y: plusButtonOffset)
+                //.offset(y: plusButtonOffset)
                 .frame(width: plusButtonSize + 12)
                 tabButtonWithBadge(tab: .notifications, icon: Tab.notifications.iconName, selectedIcon: Tab.notifications.selectedIconName, label: Tab.notifications.title, badgeCount: badgeViewModel.unreadCount)
                 tabButton(tab: .profile, icon: Tab.profile.iconName, selectedIcon: Tab.profile.selectedIconName, label: Tab.profile.title)
